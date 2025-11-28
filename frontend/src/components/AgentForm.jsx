@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const AgentForm = ({ onGenerate, isLoading }) => {
+const AgentForm = ({ onGenerate, isLoading, generatedCode }) => {
     const [formData, setFormData] = useState({
         name: '',
         prompt: '',
@@ -9,6 +9,8 @@ const AgentForm = ({ onGenerate, isLoading }) => {
         model: 'claude-3-5-sonnet-20241022',
         stream: false
     });
+    const [executionResult, setExecutionResult] = useState(null);
+    const [isExecuting, setIsExecuting] = useState(false);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -33,6 +35,35 @@ const AgentForm = ({ onGenerate, isLoading }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         onGenerate(formData);
+        setExecutionResult(null);
+    };
+
+    const handleTestAgent = async () => {
+        if (!generatedCode) return;
+        setIsExecuting(true);
+        setExecutionResult(null);
+        try {
+            const response = await fetch('http://localhost:8000/api/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    code: generatedCode,
+                    task: formData.task
+                }),
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                setExecutionResult(data.output);
+            } else {
+                setExecutionResult(`Error: ${data.detail}`);
+            }
+        } catch (error) {
+            setExecutionResult(`Error: ${error.message}`);
+        } finally {
+            setIsExecuting(false);
+        }
     };
 
     return (
@@ -127,10 +158,30 @@ const AgentForm = ({ onGenerate, isLoading }) => {
                     </label>
                 </div>
 
-                <button type="submit" className="btn-primary" disabled={isLoading}>
-                    {isLoading ? 'Generating...' : 'Generate Agent'}
-                </button>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button type="submit" className="btn-primary" disabled={isLoading}>
+                        {isLoading ? 'Generating...' : 'Generate Agent'}
+                    </button>
+                    {generatedCode && (
+                        <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={handleTestAgent}
+                            disabled={isExecuting}
+                            style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '4px', cursor: 'pointer' }}
+                        >
+                            {isExecuting ? 'Running...' : 'Test Agent'}
+                        </button>
+                    )}
+                </div>
             </form>
+
+            {executionResult && (
+                <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid #dee2e6' }}>
+                    <h3>Execution Result:</h3>
+                    <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{executionResult}</pre>
+                </div>
+            )}
         </div>
     );
 };
