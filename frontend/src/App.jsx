@@ -73,7 +73,7 @@ function App() {
       )}
 
       <div className="layout">
-        <AgentForm onGenerate={handleGenerate} isLoading={isLoading} />
+        <AgentForm onGenerate={handleGenerate} isLoading={isLoading} generatedCode={generatedCode} />
         <CodePreview code={generatedCode} path={generatedPath} />
       </div>
     </div>
