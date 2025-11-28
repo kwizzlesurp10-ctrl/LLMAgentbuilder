@@ -1,8 +1,12 @@
 import subprocess
 import tempfile
 import os
-import resource
 import sys
+
+try:
+    import resource
+except ImportError:
+    resource = None
 
 def run_in_sandbox(code: str, task: str, timeout: int = 30, memory_limit_mb: int = 512) -> str:
     """
@@ -23,12 +27,14 @@ def run_in_sandbox(code: str, task: str, timeout: int = 30, memory_limit_mb: int
     try:
         # Define resource limits
         def set_limits():
-            # CPU time limit (soft, hard)
-            resource.setrlimit(resource.RLIMIT_CPU, (timeout, timeout + 5))
-            
-            # Memory limit (soft, hard)
-            mem_limit_bytes = memory_limit_mb * 1024 * 1024
-            resource.setrlimit(resource.RLIMIT_AS, (mem_limit_bytes, mem_limit_bytes))
+            if resource:
+                # CPU time limit (soft, hard)
+                resource.setrlimit(resource.RLIMIT_CPU, (timeout, timeout + 5))
+                
+                # Memory limit (soft, hard)
+                mem_limit_bytes = memory_limit_mb * 1024 * 1024
+                resource.setrlimit(resource.RLIMIT_AS, (mem_limit_bytes, mem_limit_bytes))
+
 
         # Run the script
         # We pass the task as a command line argument
