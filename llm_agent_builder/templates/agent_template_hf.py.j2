@@ -1,0 +1,71 @@
+import os
+from huggingface_hub import InferenceClient
+
+class {{ agent_name }}:
+    def __init__(self, api_key):
+        self.client = InferenceClient(token=api_key)
+        self.prompt = "{{- prompt -}}"
+
+    def run(self, task):
+        messages = [
+            {"role": "system", "content": self.prompt},
+            {"role": "user", "content": task}
+        ]
+        
+        {% if stream %}
+        response = self.client.chat_completion(
+            model="{{ model }}",
+            messages=messages,
+            max_tokens=1024,
+            stream=True
+        )
+        full_response = ""
+        for chunk in response:
+            content = chunk.choices[0].delta.content
+            if content:
+                print(content, end="", flush=True)
+                full_response += content
+        print() # Newline after stream
+        return full_response
+        {% else %}
+        response = self.client.chat_completion(
+            model="{{ model }}",
+            messages=messages,
+            max_tokens=1024,
+            stream=False
+        )
+        return response.choices[0].message.content
+        {% endif %}
+
+if __name__ == '__main__':
+    import os
+    import argparse
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Run the {{ agent_name }} agent.")
+    parser.add_argument("--task", default="{{- example_task -}}", help="The task to be performed by the agent")
+    args = parser.parse_args()
+
+    # Ensure API key is set
+    api_key = os.environ.get("HUGGINGFACEHUB_API_TOKEN")
+    if not api_key:
+        raise ValueError("HUGGINGFACEHUB_API_TOKEN environment variable not set. Please set it in your .env file or environment.")
+
+    try:
+        agent = {{ agent_name }}(api_key=api_key)
+        print(f"Running {{ agent_name }} with task: {args.task}\n")
+        result = agent.run(args.task)
+        print("Response:")
+        print("-" * 50)
+        # If streaming, result is already printed, but we print it again or just the separator?
+        # The template logic above prints during stream. 
+        # If not streaming, we print result.
+        {% if not stream %}
+        print(result)
+        {% endif %}
+        print("-" * 50)
+    except Exception as e:
+        print(f"Error running agent: {e}")

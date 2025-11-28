@@ -11,6 +11,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from llm_agent_builder.agent_builder import AgentBuilder
 
+from server.models import GenerateRequest, ProviderEnum
+
 app = FastAPI()
 
 # Configure CORS
@@ -22,12 +24,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class GenerateRequest(BaseModel):
-    name: str
-    prompt: str
-    task: str
-    model: str = "claude-3-5-sonnet-20241022"
-
 @app.post("/api/generate")
 async def generate_agent(request: GenerateRequest):
     try:
@@ -36,7 +32,9 @@ async def generate_agent(request: GenerateRequest):
             agent_name=request.name,
             prompt=request.prompt,
             example_task=request.task,
-            model=request.model
+            model=request.model,
+            provider=request.provider,
+            stream=request.stream
         )
         
         # Stateless: Return code directly, do not save to disk

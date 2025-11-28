@@ -1,0 +1,22 @@
+# Tasks
+
+- [x] Professionalize CLI (Previous Context)
+- [x] Implement React + Vite Frontend <!-- id: 0 -->
+- [x] Implement FastAPI Backend <!-- id: 1 -->
+- [x] Deploy to Hugging Face Spaces <!-- id: 2 -->
+- [/] Configure Model Options <!-- id: 3 -->
+  - [ ] Update AgentForm.jsx with new models and provider selector
+  - [ ] Add Stream Response toggle
+  - [/] Implement Backend Validation (Pydantic)
+  - [/] Implement Streaming Support in Templates
+  - [ ] Add Security Measures (.env.example, pre-commit)
+  - [ ] Add Security Measures (.env.example, pre-commit)
+  - [ ] Update AgentBuilder default if needed
+- [ ] Implement Sandbox Executor <!-- id: 4 -->
+  - [ ] Create Sandbox module (subprocess + resource limits)
+  - [ ] Add /api/execute endpoint
+  - [ ] Add 'Test Agent' button in Frontend
+- [ ] Add Observability <!-- id: 5 -->
+  - [ ] Add Prometheus Metrics
+  - [ ] Add /healthz endpoint
+- [x] Push to GitHub

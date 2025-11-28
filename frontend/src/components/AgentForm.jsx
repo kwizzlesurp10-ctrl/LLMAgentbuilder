@@ -5,15 +5,29 @@ const AgentForm = ({ onGenerate, isLoading }) => {
         name: '',
         prompt: '',
         task: '',
-        model: 'claude-3-5-sonnet-20241022'
+        provider: 'anthropic',
+        model: 'claude-3-5-sonnet-20241022',
+        stream: false
     });
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => {
+            const newData = {
+                ...prev,
+                [name]: type === 'checkbox' ? checked : value
+            };
+
+            // Reset model when provider changes
+            if (name === 'provider' && value !== prev.provider) {
+                if (value === 'anthropic') {
+                    newData.model = 'claude-3-5-sonnet-20241022';
+                } else if (value === 'huggingface') {
+                    newData.model = 'meta-llama/Meta-Llama-3-8B-Instruct';
+                }
+            }
+            return newData;
+        });
     };
 
     const handleSubmit = (e) => {
@@ -39,6 +53,19 @@ const AgentForm = ({ onGenerate, isLoading }) => {
                 </div>
 
                 <div className="form-group">
+                    <label htmlFor="provider">Provider</label>
+                    <select
+                        id="provider"
+                        name="provider"
+                        value={formData.provider}
+                        onChange={handleChange}
+                    >
+                        <option value="anthropic">Anthropic</option>
+                        <option value="huggingface">Hugging Face</option>
+                    </select>
+                </div>
+
+                <div className="form-group">
                     <label htmlFor="model">Model</label>
                     <select
                         id="model"
@@ -46,9 +73,19 @@ const AgentForm = ({ onGenerate, isLoading }) => {
                         value={formData.model}
                         onChange={handleChange}
                     >
-                        <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Latest)</option>
-                        <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                        <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                        {formData.provider === 'anthropic' ? (
+                            <>
+                                <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Latest)</option>
+                                <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
+                                <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                                <option value="claude-3-haiku-20240307">Claude 3 Haiku (Legacy)</option>
+                            </>
+                        ) : (
+                            <>
+                                <option value="meta-llama/Meta-Llama-3-8B-Instruct">Meta Llama 3 8B Instruct</option>
+                                <option value="mistralai/Mistral-7B-Instruct-v0.3">Mistral 7B Instruct v0.3</option>
+                            </>
+                        )}
                     </select>
                 </div>
 
@@ -76,6 +113,18 @@ const AgentForm = ({ onGenerate, isLoading }) => {
                         rows="3"
                         required
                     />
+                </div>
+
+                <div className="form-group checkbox-group">
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="stream"
+                            checked={formData.stream}
+                            onChange={handleChange}
+                        />
+                        Stream Response
+                    </label>
                 </div>
 
                 <button type="submit" className="btn-primary" disabled={isLoading}>
