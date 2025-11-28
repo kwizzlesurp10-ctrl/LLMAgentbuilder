@@ -12,8 +12,8 @@
   - [ ] Add Security Measures (.env.example, pre-commit)
   - [ ] Add Security Measures (.env.example, pre-commit)
   - [ ] Update AgentBuilder default if needed
-- [ ] Implement Sandbox Executor <!-- id: 4 -->
-  - [ ] Create Sandbox module (subprocess + resource limits)
+- [/] Implement Sandbox Executor <!-- id: 4 -->
+  - [/] Create Sandbox module (subprocess + resource limits)
   - [ ] Add /api/execute endpoint
   - [ ] Add 'Test Agent' button in Frontend
 - [ ] Add Observability <!-- id: 5 -->
