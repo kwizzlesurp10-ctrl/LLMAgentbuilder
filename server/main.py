@@ -13,7 +13,13 @@ from llm_agent_builder.agent_builder import AgentBuilder
 
 from server.models import GenerateRequest, ProviderEnum
 
+from server.sandbox import run_in_sandbox
+from prometheus_fastapi_instrumentator import Instrumentator
+
 app = FastAPI()
+
+# Instrumentator
+Instrumentator().instrument(app).expose(app)
 
 # Configure CORS
 app.add_middleware(
@@ -23,6 +29,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+class ExecuteRequest(BaseModel):
+    code: str
+    task: str
+
+@app.post("/api/execute")
+async def execute_agent(request: ExecuteRequest):
+    try:
+        output = run_in_sandbox(request.code, request.task)
+        return {"status": "success", "output": output}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/generate")
 async def generate_agent(request: GenerateRequest):
@@ -48,6 +66,7 @@ async def generate_agent(request: GenerateRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
+@app.get("/healthz")
 async def health_check():
     return {"status": "ok"}
 

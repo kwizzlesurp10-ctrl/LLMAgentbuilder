@@ -14,9 +14,9 @@
   - [ ] Update AgentBuilder default if needed
 - [/] Implement Sandbox Executor <!-- id: 4 -->
   - [/] Create Sandbox module (subprocess + resource limits)
-  - [ ] Add /api/execute endpoint
+  - [/] Add /api/execute endpoint
   - [ ] Add 'Test Agent' button in Frontend
-- [ ] Add Observability <!-- id: 5 -->
-  - [ ] Add Prometheus Metrics
-  - [ ] Add /healthz endpoint
+- [/] Add Observability <!-- id: 5 -->
+  - [/] Add Prometheus Metrics
+  - [/] Add /healthz endpoint
 - [x] Push to GitHub
