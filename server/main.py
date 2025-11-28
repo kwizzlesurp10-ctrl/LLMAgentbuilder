@@ -61,6 +61,10 @@ frontend_dist = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__f
 if os.path.exists(frontend_dist):
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
     
+    @app.get("/")
+    async def serve_root():
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
         # If the path is a file in dist, serve it (e.g. vite.svg)
