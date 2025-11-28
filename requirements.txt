@@ -1,0 +1,8 @@
+anthropic
+Jinja2
+python-dotenv
+pytest
+mypy
+fastapi
+uvicorn
+pydantic

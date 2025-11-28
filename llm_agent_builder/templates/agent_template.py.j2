@@ -1,0 +1,47 @@
+import anthropic
+import os
+
+class {{ agent_name }}:
+    def __init__(self, api_key):
+        self.client = anthropic.Anthropic(api_key=api_key)
+        self.prompt = "{{- prompt -}}"
+
+    def run(self, task):
+        response = self.client.messages.create(
+
+            model=os.environ.get("ANTHROPIC_MODEL", "{{ model }}"),
+            max_tokens=1024,
+            system=self.prompt,
+            messages=[
+                {"role": "user", "content": task}
+            ]
+        )
+        return response.content[0].text
+
+if __name__ == '__main__':
+    import os
+    import argparse
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Run the {{ agent_name }} agent.")
+    parser.add_argument("--task", default="{{- example_task -}}", help="The task to be performed by the agent")
+    args = parser.parse_args()
+
+    # Ensure API key is set
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY environment variable not set. Please set it in your .env file or environment.")
+
+    try:
+        agent = {{ agent_name }}(api_key=api_key)
+        print(f"Running {{ agent_name }} with task: {args.task}\n")
+        result = agent.run(args.task)
+        print("Response:")
+        print("-" * 50)
+        print(result)
+        print("-" * 50)
+    except Exception as e:
+        print(f"Error running agent: {e}")
