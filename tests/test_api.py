@@ -21,8 +21,6 @@ def test_generate_agent():
     data = response.json()
     assert data["status"] == "success"
     assert "TestApiAgent" in data["code"]
-    assert os.path.exists(data["path"])
-    
-    # Cleanup
-    if os.path.exists(data["path"]):
-        os.remove(data["path"])
+    assert "filename" in data
+    assert data["filename"] == "testapiagent.py"
+
