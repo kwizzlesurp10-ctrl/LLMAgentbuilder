@@ -1,3 +1,11 @@
+---
+title: LLM Agent Builder
+emoji: 🤖
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 8000
+---
 # LLM Agent Builder
 
 This project is a PyCharm application that contains an LLM agent capable of building other LLM agents.

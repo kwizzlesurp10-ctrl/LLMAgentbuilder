@@ -1,6 +1,12 @@
 import pytest
 import os
 import shutil
+import sys
+from pathlib import Path
+
+# Add project root to sys.path
+root_dir = Path(__file__).parent.parent
+sys.path.append(str(root_dir))
 
 @pytest.fixture
 def mock_env(monkeypatch):
