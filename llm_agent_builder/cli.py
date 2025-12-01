@@ -18,6 +18,7 @@ def main() -> None:
     parser.add_argument("--task", default="Write a Python function that calculates the factorial of a number.", help="Example task for the agent")
     parser.add_argument("--output", default="generated_agents", help="Output directory for the generated agent")
     parser.add_argument("--model", help="Anthropic model to use (overrides .env)")
+    parser.add_argument("--provider", default="anthropic", choices=["anthropic", "huggingface"], help="LLM Provider to use (anthropic or huggingface)")
     parser.add_argument("--interactive", action="store_true", help="Run in interactive mode")
 
     # Check if we should run in interactive mode (explicit flag or no args)
@@ -36,13 +37,15 @@ def main() -> None:
         output = get_input("Output Directory", "generated_agents")
         default_model = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
         model = get_input("Anthropic Model", default_model)
+        provider = get_input("Provider (anthropic/huggingface)", "anthropic")
         
         args = argparse.Namespace(
             name=name,
             prompt=prompt,
             task=task,
             output=output,
-            model=model
+            model=model,
+            provider=provider
         )
     else:
         args = parser.parse_args()
@@ -55,10 +58,15 @@ def main() -> None:
     builder = AgentBuilder()
 
     # Generate the agent code
-    if args.model:
-        agent_code = builder.build_agent(args.name, args.prompt, args.task, model=args.model)
-    else:
-        agent_code = builder.build_agent(args.name, args.prompt, args.task)
+    # We need to handle the model argument being passed only if it exists, but build_agent has a default.
+    # However, we now have a provider argument too.
+    agent_code = builder.build_agent(
+        agent_name=args.name, 
+        prompt=args.prompt, 
+        example_task=args.task, 
+        model=args.model if args.model else ("claude-3-5-sonnet-20241022" if args.provider == "anthropic" else "HuggingFaceH4/zephyr-7b-beta"),
+        provider=args.provider
+    )
 
     # Define the output path for the generated agent
     os.makedirs(args.output, exist_ok=True)

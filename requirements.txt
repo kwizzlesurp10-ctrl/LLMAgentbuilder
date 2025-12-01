@@ -5,3 +5,4 @@ fastapi
 uvicorn
 pydantic
 prometheus-fastapi-instrumentator
+huggingface_hub

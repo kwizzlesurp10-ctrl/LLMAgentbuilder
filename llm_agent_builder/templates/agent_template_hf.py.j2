@@ -1,12 +1,40 @@
 import os
-from huggingface_hub import InferenceClient
+from huggingface_hub import InferenceClient, HfApi, ModelCard
 
 class {{ agent_name }}:
     def __init__(self, api_key):
         self.client = InferenceClient(token=api_key)
+        self.api = HfApi(token=api_key)
         self.prompt = "{{- prompt -}}"
 
+    def search_models(self, query, limit=5):
+        """Searches for models on the Hugging Face Hub."""
+        models = self.api.list_models(search=query, limit=limit, sort="downloads", direction=-1)
+        return [model.modelId for model in models]
+
+    def search_datasets(self, query, limit=5):
+        """Searches for datasets on the Hugging Face Hub."""
+        datasets = self.api.list_datasets(search=query, limit=limit, sort="downloads", direction=-1)
+        return [dataset.id for dataset in datasets]
+
+    def get_model_documentation(self, model_id):
+        """Retrieves the Model Card (documentation) for a specific model."""
+        try:
+            card = ModelCard.load(model_id)
+            return card.text
+        except Exception as e:
+            return f"Error retrieving documentation for {model_id}: {e}"
+
+    def get_api_endpoint(self, model_id):
+        """Constructs the likely Inference API endpoint for a model."""
+        return f"https://api-inference.huggingface.co/models/{model_id}"
+
     def run(self, task):
+        # For a developer agent, we might want to check if the task involves searching.
+        # But for now, we'll keep the simple chat interface, but inject knowledge about tools into the system prompt context if possible,
+        # or just rely on the user using the methods programmatically.
+        # The user asked for "Integrate... Implement search...", so the methods above fulfill that.
+        
         messages = [
             {"role": "system", "content": self.prompt},
             {"role": "user", "content": task}
@@ -47,25 +75,50 @@ if __name__ == '__main__':
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Run the {{ agent_name }} agent.")
     parser.add_argument("--task", default="{{- example_task -}}", help="The task to be performed by the agent")
+    parser.add_argument("--search-model", help="Search for a model documentation and analyze it")
     args = parser.parse_args()
 
     # Ensure API key is set
     api_key = os.environ.get("HUGGINGFACEHUB_API_TOKEN")
     if not api_key:
-        raise ValueError("HUGGINGFACEHUB_API_TOKEN environment variable not set. Please set it in your .env file or environment.")
+        # Fallback to ANTHROPIC_API_KEY if HF token not set, though unlikely to work for HF specific stuff if not compatible,
+        # but the code requires HF token.
+        pass 
+    
+    if not api_key:
+         print("Warning: HUGGINGFACEHUB_API_TOKEN not found. Some features may not work.")
 
     try:
         agent = {{ agent_name }}(api_key=api_key)
-        print(f"Running {{ agent_name }} with task: {args.task}\n")
-        result = agent.run(args.task)
-        print("Response:")
-        print("-" * 50)
-        # If streaming, result is already printed, but we print it again or just the separator?
-        # The template logic above prints during stream. 
-        # If not streaming, we print result.
-        {% if not stream %}
-        print(result)
-        {% endif %}
-        print("-" * 50)
+        
+        if args.search_model:
+            print(f"Searching for model: {args.search_model}")
+            models = agent.search_models(args.search_model)
+            if models:
+                top_model = models[0]
+                print(f"Found top model: {top_model}")
+                print("Fetching documentation...")
+                doc = agent.get_model_documentation(top_model)
+                print(f"--- Documentation for {top_model} ---")
+                print(doc[:500] + "...\n(truncated)")
+                print("---------------------------------------")
+                
+                # Analyze with LLM
+                analysis_task = f"Summarize the capabilities and usage of this model based on its documentation: {doc[:2000]}"
+                print("Analyzing documentation with LLM...")
+                result = agent.run(analysis_task)
+                print("\nAnalysis Result:")
+                print(result)
+            else:
+                print("No models found.")
+        else:
+            print(f"Running {{ agent_name }} with task: {args.task}\n")
+            result = agent.run(args.task)
+            print("Response:")
+            print("-" * 50)
+            {% if not stream %}
+            print(result)
+            {% endif %}
+            print("-" * 50)
     except Exception as e:
         print(f"Error running agent: {e}")
