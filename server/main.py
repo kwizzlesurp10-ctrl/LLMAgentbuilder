@@ -1,22 +1,33 @@
 import os
 import sys
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+import time
+from typing import Dict
+import subprocess
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from pydantic import BaseModel
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 # Add the parent directory to sys.path to import llm_agent_builder
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from llm_agent_builder.agent_builder import AgentBuilder
-
 from server.models import GenerateRequest, ProviderEnum
-
 from server.sandbox import run_in_sandbox
 from prometheus_fastapi_instrumentator import Instrumentator
 
-app = FastAPI()
+app = FastAPI(title="LLM Agent Builder API", version="1.0.0")
+
+# Rate limiting
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Instrumentator
 Instrumentator().instrument(app).expose(app)
@@ -34,36 +45,65 @@ class ExecuteRequest(BaseModel):
     code: str
     task: str
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type((ConnectionError, TimeoutError))
+)
+def _generate_agent_with_retry(request: GenerateRequest) -> str:
+    """Generate agent code with retry logic."""
+    builder = AgentBuilder()
+    return builder.build_agent(
+        agent_name=request.name,
+        prompt=request.prompt,
+        example_task=request.task,
+        model=request.model,
+        provider=request.provider,
+        stream=request.stream
+    )
+
 @app.post("/api/execute")
-async def execute_agent(request: ExecuteRequest):
+@limiter.limit("10/minute")
+async def execute_agent(request: Request, execute_request: ExecuteRequest):
+    """Execute agent code in a sandboxed environment."""
     try:
-        output = run_in_sandbox(request.code, request.task)
+        # Validate code length
+        if len(execute_request.code) > 100000:  # 100KB limit
+            raise HTTPException(status_code=400, detail="Code exceeds maximum size limit (100KB)")
+        
+        output = run_in_sandbox(execute_request.code, execute_request.task)
         return {"status": "success", "output": output}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=408, detail="Execution timed out")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
 
 @app.post("/api/generate")
-async def generate_agent(request: GenerateRequest):
+@limiter.limit("20/minute")
+async def generate_agent(request: Request, generate_request: GenerateRequest):
+    """Generate a new agent with retry logic and rate limiting."""
     try:
-        builder = AgentBuilder()
-        code = builder.build_agent(
-            agent_name=request.name,
-            prompt=request.prompt,
-            example_task=request.task,
-            model=request.model,
-            provider=request.provider,
-            stream=request.stream
-        )
+        # Validate input lengths
+        if len(generate_request.prompt) > 10000:
+            raise HTTPException(status_code=400, detail="Prompt exceeds maximum length (10000 characters)")
+        if len(generate_request.task) > 5000:
+            raise HTTPException(status_code=400, detail="Task exceeds maximum length (5000 characters)")
+        
+        code = _generate_agent_with_retry(generate_request)
         
         # Stateless: Return code directly, do not save to disk
         return {
             "status": "success",
             "message": "Agent generated successfully",
             "code": code,
-            "filename": f"{request.name.lower()}.py"
+            "filename": f"{generate_request.name.lower()}.py"
         }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Generation error: {str(e)}")
 
 @app.get("/health")
 @app.get("/healthz")

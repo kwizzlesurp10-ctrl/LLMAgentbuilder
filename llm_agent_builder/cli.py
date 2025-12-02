@@ -1,83 +1,285 @@
 import os
 import argparse
 import sys
-from typing import Optional
+import json
+import subprocess
+from typing import Optional, List
+from pathlib import Path
 from llm_agent_builder.agent_builder import AgentBuilder
 from dotenv import load_dotenv
 
-def get_input(prompt: str, default: str) -> str:
-    value = input(f"{prompt} [{default}]: ").strip()
-    return value if value else default
+def get_input(prompt: str, default: str, validator=None) -> str:
+    """Get user input with optional validation."""
+    while True:
+        value = input(f"{prompt} [{default}]: ").strip()
+        value = value if value else default
+        if validator:
+            try:
+                validator(value)
+                return value
+            except ValueError as e:
+                print(f"Error: {e}. Please try again.")
+                continue
+        return value
+
+def validate_agent_name(name: str) -> None:
+    """Validate agent name."""
+    if not name:
+        raise ValueError("Agent name cannot be empty")
+    if not name.replace("_", "").replace("-", "").isalnum():
+        raise ValueError("Agent name must be alphanumeric (with underscores or hyphens)")
+
+def list_agents(output_dir: str = "generated_agents") -> None:
+    """List all generated agents."""
+    output_path = Path(output_dir)
+    if not output_path.exists():
+        print(f"Output directory '{output_dir}' does not exist.")
+        return
+    
+    agents = list(output_path.glob("*.py"))
+    if not agents:
+        print(f"No agents found in '{output_dir}'.")
+        return
+    
+    print(f"\nFound {len(agents)} agent(s) in '{output_dir}':")
+    print("-" * 60)
+    for agent_file in sorted(agents):
+        print(f"  • {agent_file.stem}")
+    print("-" * 60)
+
+def test_agent(agent_path: str, task: Optional[str] = None) -> None:
+    """Test a generated agent."""
+    agent_file = Path(agent_path)
+    if not agent_file.exists():
+        print(f"Error: Agent file '{agent_path}' not found.")
+        sys.exit(1)
+    
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
+    if not api_key:
+        print("Error: API key not found. Please set ANTHROPIC_API_KEY or HUGGINGFACEHUB_API_TOKEN.")
+        sys.exit(1)
+    
+    if not task:
+        task = input("Enter task to test: ").strip()
+        if not task:
+            print("Error: Task cannot be empty.")
+            sys.exit(1)
+    
+    try:
+        cmd = [sys.executable, str(agent_file), "--task", task]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        
+        if result.returncode == 0:
+            print("\n" + "=" * 60)
+            print("Agent Execution Result:")
+            print("=" * 60)
+            print(result.stdout)
+            if result.stderr:
+                print("\nWarnings/Errors:")
+                print(result.stderr)
+        else:
+            print(f"Error: Agent execution failed with code {result.returncode}")
+            print(result.stderr)
+            sys.exit(1)
+    except subprocess.TimeoutExpired:
+        print("Error: Agent execution timed out after 60 seconds.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error running agent: {e}")
+        sys.exit(1)
+
+def batch_generate(config_file: str, output_dir: str = "generated_agents") -> None:
+    """Generate multiple agents from a JSON configuration file."""
+    config_path = Path(config_file)
+    if not config_path.exists():
+        print(f"Error: Configuration file '{config_file}' not found.")
+        sys.exit(1)
+    
+    try:
+        with open(config_path, 'r') as f:
+            configs = json.load(f)
+        
+        if not isinstance(configs, list):
+            print("Error: Configuration file must contain a JSON array of agent configurations.")
+            sys.exit(1)
+        
+        builder = AgentBuilder()
+        output_path = Path(output_dir)
+        output_path.mkdir(exist_ok=True)
+        
+        print(f"Generating {len(configs)} agent(s)...")
+        print("-" * 60)
+        
+        for i, config in enumerate(configs, 1):
+            try:
+                agent_name = config.get("name", f"Agent{i}")
+                prompt = config.get("prompt", "")
+                task = config.get("task", "")
+                model = config.get("model", "claude-3-5-sonnet-20241022")
+                provider = config.get("provider", "anthropic")
+                
+                if not prompt or not task:
+                    print(f"  [{i}] Skipping '{agent_name}': missing prompt or task")
+                    continue
+                
+                agent_code = builder.build_agent(
+                    agent_name=agent_name,
+                    prompt=prompt,
+                    example_task=task,
+                    model=model,
+                    provider=provider
+                )
+                
+                agent_file = output_path / f"{agent_name.lower()}.py"
+                with open(agent_file, "w") as f:
+                    f.write(agent_code)
+                
+                print(f"  [{i}] ✓ Generated '{agent_name}' -> {agent_file}")
+            except Exception as e:
+                print(f"  [{i}] ✗ Error generating '{config.get('name', f'Agent{i}')}': {e}")
+        
+        print("-" * 60)
+        print(f"Batch generation complete. Check '{output_dir}' for generated agents.")
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in configuration file: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 def main() -> None:
     load_dotenv()
     
-    parser = argparse.ArgumentParser(description="Generate an LLM agent using Anthropic API.")
-    parser.add_argument("--name", default="MyAwesomeAgent", help="Name of the agent to be built")
-    parser.add_argument("--prompt", default="You are a helpful assistant that specializes in writing Python code.", help="System prompt for the agent")
-    parser.add_argument("--task", default="Write a Python function that calculates the factorial of a number.", help="Example task for the agent")
-    parser.add_argument("--output", default="generated_agents", help="Output directory for the generated agent")
-    parser.add_argument("--model", help="Anthropic model to use (overrides .env)")
-    parser.add_argument("--provider", default="anthropic", choices=["anthropic", "huggingface"], help="LLM Provider to use (anthropic or huggingface)")
-    parser.add_argument("--interactive", action="store_true", help="Run in interactive mode")
+    parser = argparse.ArgumentParser(
+        description="LLM Agent Builder - Generate, test, and manage AI agents",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Generate an agent interactively
+  llm-agent-builder generate
 
-    # Check if we should run in interactive mode (explicit flag or no args)
-    # Note: We want to preserve the ability to run with defaults using a flag if needed, 
-    # but for now let's say if NO args are passed, we default to interactive? 
-    # Or maybe just add an --interactive flag. 
-    # The plan said "If no arguments are provided, use input()".
-    # But argparse sets defaults. 
-    # Let's stick to the plan: if len(sys.argv) == 1, go interactive.
-    
-    if len(sys.argv) == 1:
-        print("No arguments provided. Starting interactive mode...")
-        name = get_input("Agent Name", "MyAwesomeAgent")
-        prompt = get_input("System Prompt", "You are a helpful assistant that specializes in writing Python code.")
-        task = get_input("Example Task", "Write a Python function that calculates the factorial of a number.")
-        output = get_input("Output Directory", "generated_agents")
-        default_model = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
-        model = get_input("Anthropic Model", default_model)
-        provider = get_input("Provider (anthropic/huggingface)", "anthropic")
-        
-        args = argparse.Namespace(
-            name=name,
-            prompt=prompt,
-            task=task,
-            output=output,
-            model=model,
-            provider=provider
-        )
-    else:
-        args = parser.parse_args()
+  # Generate with command-line arguments
+  llm-agent-builder generate --name CodeReviewer --prompt "You are a code reviewer" --task "Review this code"
 
-    # Override ANTHROPIC_MODEL if provided via CLI or Interactive
-    if args.model:
-        os.environ["ANTHROPIC_MODEL"] = args.model
+  # List all generated agents
+  llm-agent-builder list
 
-    # Create an instance of the AgentBuilder
-    builder = AgentBuilder()
+  # Test an agent
+  llm-agent-builder test generated_agents/myagent.py --task "Review this function"
 
-    # Generate the agent code
-    # We need to handle the model argument being passed only if it exists, but build_agent has a default.
-    # However, we now have a provider argument too.
-    agent_code = builder.build_agent(
-        agent_name=args.name, 
-        prompt=args.prompt, 
-        example_task=args.task, 
-        model=args.model if args.model else ("claude-3-5-sonnet-20241022" if args.provider == "anthropic" else "HuggingFaceH4/zephyr-7b-beta"),
-        provider=args.provider
+  # Batch generate from config file
+  llm-agent-builder batch agents.json
+        """
     )
-
-    # Define the output path for the generated agent
-    os.makedirs(args.output, exist_ok=True)
-    output_path = os.path.join(args.output, f"{args.name.lower()}.py")
-
-    # Write the generated code to a file
-    with open(output_path, "w") as f:
-        f.write(agent_code)
-
-    print(f"Agent '{args.name}' has been created and saved to '{output_path}'")
-    print("To use the agent, you need to set the ANTHROPIC_API_KEY environment variable.")
+    
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+    
+    # Generate subcommand
+    gen_parser = subparsers.add_parser("generate", help="Generate a new agent")
+    gen_parser.add_argument("--name", default="MyAwesomeAgent", help="Name of the agent to be built")
+    gen_parser.add_argument("--prompt", default="You are a helpful assistant that specializes in writing Python code.", help="System prompt for the agent")
+    gen_parser.add_argument("--task", default="Write a Python function that calculates the factorial of a number.", help="Example task for the agent")
+    gen_parser.add_argument("--output", default="generated_agents", help="Output directory for the generated agent")
+    gen_parser.add_argument("--model", help="Model to use (overrides .env)")
+    gen_parser.add_argument("--provider", default="anthropic", choices=["anthropic", "huggingface"], help="LLM Provider to use")
+    gen_parser.add_argument("--interactive", action="store_true", help="Run in interactive mode")
+    
+    # List subcommand
+    list_parser = subparsers.add_parser("list", help="List all generated agents")
+    list_parser.add_argument("--output", default="generated_agents", help="Output directory to search")
+    
+    # Test subcommand
+    test_parser = subparsers.add_parser("test", help="Test a generated agent")
+    test_parser.add_argument("agent_path", help="Path to the agent Python file")
+    test_parser.add_argument("--task", help="Task to test the agent with")
+    
+    # Batch subcommand
+    batch_parser = subparsers.add_parser("batch", help="Generate multiple agents from a JSON config file")
+    batch_parser.add_argument("config_file", help="Path to JSON configuration file")
+    batch_parser.add_argument("--output", default="generated_agents", help="Output directory for generated agents")
+    
+    args = parser.parse_args()
+    
+    # Handle no command (default to generate in interactive mode)
+    if not args.command:
+        args.command = "generate"
+        args.interactive = True
+    
+    try:
+        if args.command == "generate":
+            # Interactive mode
+            if args.interactive or len(sys.argv) == 1:
+                print("Starting interactive agent generation...")
+                name = get_input("Agent Name", args.name, validator=validate_agent_name)
+                prompt = get_input("System Prompt", args.prompt)
+                task = get_input("Example Task", args.task)
+                output = get_input("Output Directory", args.output)
+                default_model = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
+                model = get_input("Model", default_model)
+                provider = get_input("Provider (anthropic/huggingface)", args.provider)
+                
+                # Validate provider
+                if provider not in ["anthropic", "huggingface"]:
+                    print(f"Error: Invalid provider '{provider}'. Must be 'anthropic' or 'huggingface'.")
+                    sys.exit(1)
+            else:
+                name = args.name
+                prompt = args.prompt
+                task = args.task
+                output = args.output
+                model = args.model
+                provider = args.provider
+            
+            # Validate agent name
+            try:
+                validate_agent_name(name)
+            except ValueError as e:
+                print(f"Error: {e}")
+                sys.exit(1)
+            
+            # Override ANTHROPIC_MODEL if provided
+            if model:
+                os.environ["ANTHROPIC_MODEL"] = model
+            
+            # Create an instance of the AgentBuilder
+            builder = AgentBuilder()
+            
+            # Generate the agent code
+            default_model = model or ("claude-3-5-sonnet-20241022" if provider == "anthropic" else "meta-llama/Meta-Llama-3-8B-Instruct")
+            agent_code = builder.build_agent(
+                agent_name=name, 
+                prompt=prompt, 
+                example_task=task, 
+                model=default_model,
+                provider=provider
+            )
+            
+            # Define the output path for the generated agent
+            os.makedirs(output, exist_ok=True)
+            output_path = os.path.join(output, f"{name.lower()}.py")
+            
+            # Write the generated code to a file
+            with open(output_path, "w") as f:
+                f.write(agent_code)
+            
+            print(f"\n✓ Agent '{name}' has been created and saved to '{output_path}'")
+            print("To use the agent, you need to set the ANTHROPIC_API_KEY environment variable.")
+            
+        elif args.command == "list":
+            list_agents(args.output)
+            
+        elif args.command == "test":
+            test_agent(args.agent_path, args.task)
+            
+        elif args.command == "batch":
+            batch_generate(args.config_file, args.output)
+            
+    except KeyboardInterrupt:
+        print("\n\nOperation cancelled by user.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

@@ -6,3 +6,5 @@ uvicorn
 pydantic
 prometheus-fastapi-instrumentator
 huggingface_hub
+slowapi
+tenacity

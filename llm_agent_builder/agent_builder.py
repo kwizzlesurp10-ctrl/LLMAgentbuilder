@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from jinja2 import Environment, FileSystemLoader
 
 class AgentBuilder:
@@ -9,7 +9,17 @@ class AgentBuilder:
         self.env = Environment(loader=FileSystemLoader(template_path))
         self.template = self.env.get_template('agent_template.py.j2')
 
-    def build_agent(self, agent_name: str, prompt: str, example_task: str, model: str = "claude-3-5-sonnet-20241022", provider: str = "anthropic", stream: bool = False) -> str:
+    def build_agent(
+        self, 
+        agent_name: str, 
+        prompt: str, 
+        example_task: str, 
+        model: str = "claude-3-5-sonnet-20241022", 
+        provider: str = "anthropic", 
+        stream: bool = False,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        enable_multi_step: bool = False
+    ) -> str:
         """
         Generates the Python code for a new agent.
 
@@ -19,6 +29,8 @@ class AgentBuilder:
         :param model: The model to use.
         :param provider: The provider (anthropic or huggingface).
         :param stream: Whether to stream the response.
+        :param tools: Optional list of tool definitions for tool calling support.
+        :param enable_multi_step: Enable multi-step workflow capabilities.
         :return: The generated Python code as a string.
         """
         template_name = 'agent_template_hf.py.j2' if provider == 'huggingface' else 'agent_template.py.j2'
@@ -29,5 +41,7 @@ class AgentBuilder:
             prompt=prompt,
             example_task=example_task,
             model=model,
-            stream=stream
+            stream=stream,
+            tools=tools or [],
+            enable_multi_step=enable_multi_step
         )

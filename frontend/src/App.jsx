@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AgentForm from './components/AgentForm';
 import CodePreview from './components/CodePreview';
 
@@ -7,6 +7,21 @@ function App() {
   const [generatedPath, setGeneratedPath] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [theme, setTheme] = useState('dark');
+
+  useEffect(() => {
+    // Load theme from localStorage or default to dark
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setTheme(savedTheme);
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+  };
 
   const handleGenerate = async (formData) => {
     setIsLoading(true);
@@ -55,8 +70,28 @@ function App() {
   return (
     <div className="container">
       <header className="header">
-        <h1>LLM Agent Builder</h1>
-        <p>Design, configure, and generate AI agents in seconds.</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '1rem' }}>
+          <div>
+            <h1>LLM Agent Builder</h1>
+            <p>Design, configure, and generate AI agents in seconds.</p>
+          </div>
+          <button
+            onClick={toggleTheme}
+            className="btn-secondary"
+            style={{
+              padding: '0.5rem 1rem',
+              borderRadius: '0.5rem',
+              border: '1px solid var(--glass-border)',
+              background: 'var(--glass-bg)',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              fontSize: '1.5rem'
+            }}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+        </div>
       </header>
 
       {error && (
