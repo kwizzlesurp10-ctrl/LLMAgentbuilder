@@ -20,14 +20,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 FROM base
 WORKDIR /app
 
-# Ensure git and essential tools are available in final stage
-# This is critical for Hugging Face Spaces dev-mode which wraps this stage
+# Ensure git and ca-certificates are explicitly available in final stage
+# Critical for Hugging Face Spaces dev-mode which wraps this stage
 # HF Spaces runs git config commands in wrapped stages, so git must be present
+# ca-certificates needed for HTTPS API calls (Anthropic, Hugging Face Hub)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
-    && git --version || echo "Git installation verified"
+    && git --version
 
 # Copy requirements and install
 COPY requirements.txt .
