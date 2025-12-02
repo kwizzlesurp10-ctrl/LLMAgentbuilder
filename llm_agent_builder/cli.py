@@ -207,10 +207,13 @@ Examples:
     
     try:
         if args.command == "generate":
-            # Interactive mode: triggered by --interactive flag or when no arguments provided after "generate"
-            # Check if user provided any arguments after "generate" subcommand
-            # sys.argv[0] is script name, sys.argv[1] is "generate", so if len == 2, no args provided
-            no_args_provided = len(sys.argv) == 2
+            # Interactive mode: triggered by --interactive flag or when no arguments provided
+            # Check if user provided any arguments after the script name:
+            # - len(sys.argv) == 1: no command provided (handled above, sets args.interactive=True)
+            # - len(sys.argv) == 2: only "generate" command provided (no additional args)
+            # - len(sys.argv) > 2: additional arguments provided (use command-line mode)
+            # This check is robust and doesn't depend on args.interactive being set above
+            no_args_provided = len(sys.argv) <= 2
             
             if args.interactive or no_args_provided:
                 print("Starting interactive agent generation...")
