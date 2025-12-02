@@ -9,24 +9,30 @@ RUN npm run build
 # Stage 2: Base Python image with git (for Hugging Face Spaces dev-mode compatibility)
 # Using python:3.10 (not slim) which includes git by default
 FROM python:3.10 as base
-# Ensure git and build tools are available
+# Ensure git, build tools, and utilities needed for HF Spaces dev-mode are available
+# wget and tar are needed for the injected vscode stage in dev-mode
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     build-essential \
     ca-certificates \
+    wget \
+    tar \
     && rm -rf /var/lib/apt/lists/*
 
 # Stage 3: Build Backend & Serve
 FROM base
 WORKDIR /app
 
-# Ensure git and ca-certificates are explicitly available in final stage
+# Ensure git, ca-certificates, and utilities are explicitly available in final stage
 # Critical for Hugging Face Spaces dev-mode which wraps this stage
 # HF Spaces runs git config commands in wrapped stages, so git must be present
 # ca-certificates needed for HTTPS API calls (Anthropic, Hugging Face Hub)
+# wget and tar needed for injected vscode stage in dev-mode
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     ca-certificates \
+    wget \
+    tar \
     && rm -rf /var/lib/apt/lists/* \
     && git --version
 
