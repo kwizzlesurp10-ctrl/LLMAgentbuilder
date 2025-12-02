@@ -386,6 +386,15 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - **Solution**: Check that your agent code is valid Python and doesn't have infinite loops. The sandbox has a 30-second timeout.
 
+**Issue**: Hugging Face Spaces build fails with "openvscode-server" download error
+
+- **Cause**: This is a known issue with Hugging Face Spaces' dev-mode feature. The injected vscode stage tries to download openvscode-server from GitHub, which can fail due to network issues.
+- **Solutions**:
+  1. **Disable dev-mode** (recommended): In your Space settings, disable "Dev Mode" if you don't need the VS Code interface
+  2. **Retry the build**: This is often a temporary network issue on HF Spaces' side
+  3. **Wait and retry**: HF Spaces infrastructure issues are usually resolved within a few hours
+- **Note**: Our Dockerfile includes all necessary tools (`wget`, `tar`, `git`) for dev-mode compatibility, but we cannot control the injected stages that HF Spaces adds.
+
 ## 📈 Roadmap
 
 - [ ] Support for OpenAI models
