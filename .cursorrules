@@ -1,0 +1,152 @@
+# LLM Agent Builder - Cursor IDE Rules
+
+## Project Overview
+This is an LLM Agent Builder project that generates custom AI agents using Anthropic Claude or Hugging Face models. The project consists of:
+- Python backend (FastAPI) for agent generation API
+- React 19 frontend (Vite) for web UI
+- CLI tool for command-line agent generation
+- Docker deployment for Hugging Face Spaces
+
+## Tech Stack
+- **Backend**: Python 3.9+, FastAPI, Pydantic, Jinja2
+- **Frontend**: React 19, Vite, Tailwind CSS
+- **LLM Providers**: Anthropic Claude, Hugging Face
+- **Testing**: pytest, mypy
+- **Deployment**: Docker, Hugging Face Spaces
+
+## Code Style & Standards
+
+### Python
+- Use type hints for all function parameters and return types
+- Follow PEP 8 style guide
+- Use f-strings for string formatting
+- Maximum line length: 120 characters
+- Use descriptive variable names
+- Add docstrings for all public functions and classes
+
+### Frontend (React/JavaScript)
+- Use functional components with hooks
+- Use modern React patterns (React 19 features)
+- Prefer named exports over default exports
+- Use Tailwind CSS for styling (custom CSS variables for theming)
+- Follow React best practices (keys, proper state management)
+
+### API Design
+- Use RESTful conventions
+- Validate all inputs with Pydantic models
+- Return consistent JSON response formats
+- Include proper HTTP status codes
+- Implement rate limiting for production endpoints
+
+## Project Structure
+
+```
+llm_agent_builder/     # Core package
+  - agent_builder.py   # AgentBuilder class
+  - cli.py             # CLI interface
+  - templates/         # Jinja2 templates
+
+server/                # FastAPI backend
+  - main.py           # API endpoints
+  - models.py         # Pydantic models
+  - sandbox.py        # Code execution sandbox
+
+frontend/             # React frontend
+  - src/
+    - components/     # React components
+    - App.jsx        # Main app
+
+tests/                # Test suite
+```
+
+## Key Patterns
+
+### Agent Generation
+- Agents are generated using Jinja2 templates
+- Support for multi-step workflows and tool integration
+- Templates support both Anthropic and Hugging Face providers
+
+### Error Handling
+- Use try/except blocks with specific exception types
+- Return meaningful error messages to users
+- Log errors appropriately
+- Fail fast and loud (never swallow exceptions)
+
+### Security
+- Validate all user inputs
+- Use environment variables for secrets (never hardcode)
+- Sandbox code execution with resource limits
+- Rate limit API endpoints
+
+### Testing
+- Write tests for all business logic
+- Use pytest fixtures for test setup
+- Mock external API calls in tests
+- Aim for high test coverage
+
+## Common Tasks
+
+### Adding a New Agent Feature
+1. Update `agent_builder.py` with new parameters
+2. Update Jinja2 templates if needed
+3. Update Pydantic models in `server/models.py`
+4. Add API endpoint in `server/main.py`
+5. Update frontend form in `frontend/src/components/AgentForm.jsx`
+6. Add tests in `tests/`
+
+### Adding a New CLI Command
+1. Add subcommand in `llm_agent_builder/cli.py`
+2. Update help text and documentation
+3. Add tests in `tests/test_cli.py`
+
+### Updating Dependencies
+1. Update `requirements.txt` for Python packages
+2. Update `frontend/package.json` for Node packages
+3. Update `pyproject.toml` if needed
+4. Test thoroughly before committing
+
+## Important Notes
+
+- Always check if frontend/dist exists before serving static files
+- Git must be installed in Dockerfile for Hugging Face Spaces compatibility
+- Port 7860 is used for Hugging Face Spaces deployment
+- Port 8000 is used for local development
+- API endpoints are rate-limited (20/min generate, 10/min execute)
+
+## When Making Changes
+
+1. **Always** run tests before committing: `pytest`
+2. **Always** check type hints: `mypy llm_agent_builder server`
+3. **Always** ensure frontend builds: `cd frontend && npm run build`
+4. **Always** test Docker build locally before pushing
+5. **Always** update documentation if adding features
+
+## Code Generation Guidelines
+
+- Generate code that follows existing patterns
+- Use the same naming conventions as the codebase
+- Include error handling and validation
+- Add appropriate comments for complex logic
+- Ensure compatibility with Python 3.9+
+
+## API Endpoints
+
+- `POST /api/generate` - Generate a new agent
+- `POST /api/execute` - Execute agent code in sandbox
+- `GET /health` - Health check
+- `GET /healthz` - Kubernetes health check
+- `GET /docs` - API documentation (Swagger UI)
+
+## Environment Variables
+
+- `ANTHROPIC_API_KEY` - Required for Anthropic models
+- `HUGGINGFACEHUB_API_TOKEN` - Required for Hugging Face models
+- `ANTHROPIC_MODEL` - Optional, defaults to claude-3-5-sonnet-20241022
+
+## Deployment
+
+- Dockerfile uses multi-stage build
+- Frontend is built in first stage
+- Backend runs on Python 3.10
+- Git must be available for Hugging Face Spaces dev-mode
+
