@@ -4,7 +4,7 @@ emoji: 🤖
 colorFrom: blue
 colorTo: indigo
 sdk: docker
-app_port: 8000
+app_port: 7860
 ---
 
 # LLM Agent Builder
@@ -79,6 +79,7 @@ LLM Agent Builder is a comprehensive Python application that enables developers 
 #### Generate an Agent
 
 **Interactive Mode:**
+
 ```bash
 llm-agent-builder generate
 # or simply
@@ -86,6 +87,7 @@ llm-agent-builder
 ```
 
 **Command-Line Mode:**
+
 ```bash
 llm-agent-builder generate \
   --name "CodeReviewer" \
@@ -369,15 +371,19 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ### Common Issues
 
 **Issue**: `ANTHROPIC_API_KEY not found`
+
 - **Solution**: Ensure your `.env` file is in the project root and contains `ANTHROPIC_API_KEY=your-key`
 
 **Issue**: Frontend build fails
+
 - **Solution**: Ensure Node.js 18+ is installed and run `npm install` in the `frontend/` directory
 
 **Issue**: Rate limit errors
+
 - **Solution**: The API has rate limiting (20 requests/min for generation, 10/min for execution). Wait a moment and retry.
 
 **Issue**: Agent execution times out
+
 - **Solution**: Check that your agent code is valid Python and doesn't have infinite loops. The sandbox has a 30-second timeout.
 
 ## 📈 Roadmap

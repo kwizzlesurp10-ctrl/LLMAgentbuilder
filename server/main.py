@@ -114,22 +114,49 @@ async def health_check():
 # Mount the static files from the frontend build directory
 # We assume the frontend is built to 'frontend/dist'
 frontend_dist = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "dist")
+index_html_path = os.path.join(frontend_dist, "index.html") if os.path.exists(frontend_dist) else None
 
-if os.path.exists(frontend_dist):
-    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
+if os.path.exists(frontend_dist) and os.path.exists(index_html_path):
+    print(f"✓ Serving frontend from: {frontend_dist}")
     
+    # Mount static assets (must be before catch-all route)
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+    
+    # Serve root
     @app.get("/")
     async def serve_root():
-        return FileResponse(os.path.join(frontend_dist, "index.html"))
+        return FileResponse(index_html_path, media_type="text/html")
 
+    # Catch-all route for React Router (must be last, excludes API routes)
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
-        # If the path is a file in dist, serve it (e.g. vite.svg)
+        # Skip API routes and other special paths - let FastAPI handle these
+        if full_path.startswith(("api/", "docs", "redoc", "openapi.json", "metrics", "health")):
+            raise HTTPException(status_code=404, detail="Not found")
+        
+        # If the path is a file in dist, serve it (e.g. vite.svg, favicon.ico)
         file_path = os.path.join(frontend_dist, full_path)
         if os.path.exists(file_path) and os.path.isfile(file_path):
             return FileResponse(file_path)
             
         # Otherwise serve index.html for React Router
-        return FileResponse(os.path.join(frontend_dist, "index.html"))
+        return FileResponse(index_html_path, media_type="text/html")
 else:
-    print(f"Warning: Frontend build directory not found at {frontend_dist}")
+    # Fallback if frontend is not built
+    @app.get("/")
+    async def serve_root_fallback():
+        return {
+            "message": "LLM Agent Builder API",
+            "status": "Frontend not built. Please build the frontend or use API endpoints.",
+            "api_docs": "/docs",
+            "endpoints": {
+                "generate": "POST /api/generate",
+                "execute": "POST /api/execute",
+                "health": "GET /health"
+            }
+        }
+    print(f"⚠ Warning: Frontend build directory not found at {frontend_dist}")
+    print(f"   Expected path: {frontend_dist}")
+    print(f"   Serving API only. Access API docs at /docs")

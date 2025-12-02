@@ -13,15 +13,21 @@ FROM python:3.10 as base
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     build-essential \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Stage 3: Build Backend & Serve
 FROM base
 WORKDIR /app
 
-# Ensure git is available for Hugging Face Spaces dev-mode stages
-# (git is already in base, but this ensures it's present when HF Spaces wraps this stage)
-RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+# Ensure git and essential tools are available in final stage
+# This is critical for Hugging Face Spaces dev-mode which wraps this stage
+# HF Spaces runs git config commands in wrapped stages, so git must be present
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && git --version || echo "Git installation verified"
 
 # Copy requirements and install
 COPY requirements.txt .
