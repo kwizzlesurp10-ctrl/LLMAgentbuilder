@@ -207,8 +207,18 @@ Examples:
     
     try:
         if args.command == "generate":
-            # Interactive mode
-            if args.interactive or len(sys.argv) == 1:
+            # Interactive mode: triggered by --interactive flag or when no arguments provided after "generate"
+            # Check if only default values are used (meaning user didn't provide any arguments)
+            has_custom_args = (
+                args.name != "MyAwesomeAgent" or
+                args.prompt != "You are a helpful assistant that specializes in writing Python code." or
+                args.task != "Write a Python function that calculates the factorial of a number." or
+                args.model is not None or
+                args.provider != "anthropic" or
+                args.output != "generated_agents"
+            )
+            
+            if args.interactive or not has_custom_args:
                 print("Starting interactive agent generation...")
                 name = get_input("Agent Name", args.name, validator=validate_agent_name)
                 prompt = get_input("System Prompt", args.prompt)
