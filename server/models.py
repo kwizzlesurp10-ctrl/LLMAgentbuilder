@@ -23,9 +23,10 @@ class GenerateRequest(BaseModel):
         if not v or not v.strip():
             raise ValueError("Agent name cannot be empty")
         # Ensure name is a valid Python class name
-        if not v[0].isalpha() and v[0] != '_':
+        trimmed = v.strip()
+        if not trimmed[0].isalpha() and trimmed[0] != '_':
             raise ValueError("Agent name must start with a letter or underscore")
-        return v.strip()
+        return trimmed
 
     @validator('model')
     def validate_model(cls, v, values):
