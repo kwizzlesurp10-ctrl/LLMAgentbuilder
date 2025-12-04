@@ -13,6 +13,7 @@ class GenerateRequest(BaseModel):
     provider: ProviderEnum = ProviderEnum.ANTHROPIC
     model: str
     stream: bool = False
+    db_path: Optional[str] = None
 
     @validator('model')
     def validate_model(cls, v, values):

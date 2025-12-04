@@ -184,6 +184,7 @@ Examples:
     gen_parser.add_argument("--provider", default="anthropic", choices=["anthropic", "huggingface"], help="LLM Provider to use")
     gen_parser.add_argument("--template", help="Path to a custom Jinja2 template file")
     gen_parser.add_argument("--interactive", action="store_true", help="Run in interactive mode")
+    gen_parser.add_argument("--db-path", help="Path to a SQLite database for the agent to use")
     
     # List subcommand
     list_parser = subparsers.add_parser("list", help="List all generated agents")
@@ -236,6 +237,7 @@ Examples:
                 model = get_input("Model", default_model)
                 provider = get_input("Provider (anthropic/huggingface)", args.provider)
                 template = get_input("Custom Template Path (optional)", "")
+                db_path = get_input("SQLite Database Path (optional)", "")
                 
                 # Validate provider
                 if provider not in ["anthropic", "huggingface"]:
@@ -249,6 +251,7 @@ Examples:
                 model = args.model
                 provider = args.provider
                 template = args.template
+                db_path = args.db_path
             
             # Validate agent name
             try:
@@ -271,7 +274,8 @@ Examples:
                 prompt=prompt, 
                 example_task=task, 
                 model=default_model,
-                provider=provider
+                provider=provider,
+                db_path=db_path if db_path else None
             )
             
             # Define the output path for the generated agent

@@ -59,7 +59,8 @@ def _generate_agent_with_retry(request: GenerateRequest) -> str:
         example_task=request.task,
         model=request.model,
         provider=request.provider,
-        stream=request.stream
+        stream=request.stream,
+        db_path=request.db_path
     )
 
 @app.post("/api/execute")

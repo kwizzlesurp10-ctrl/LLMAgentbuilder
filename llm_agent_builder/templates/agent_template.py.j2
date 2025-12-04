@@ -1,23 +1,73 @@
 import anthropic
 import os
 from typing import Optional, List, Dict, Any
+{% if db_path %}
+import sqlite3
+{% endif %}
 {% if enable_multi_step or tools %}
 import json
 {% endif %}
 
 class {{ agent_name }}:
     def __init__(self, api_key):
+        {% if provider == 'huggingface' %}
+        from huggingface_hub import InferenceClient
+        self.client = InferenceClient(token=api_key)
+        self.model = "{{ model }}"
+        {% else %}
         self.client = anthropic.Anthropic(api_key=api_key)
+        {% endif %}
         self.prompt = "{{- prompt -}}"
         {% if tools %}
         self.tools = {{ tools | tojson }}
+        {% endif %}
+        {% if db_path %}
+        self.db_path = "{{ db_path }}"
+        self.prompt += "\n\nYou have access to a SQLite database. You can query it using the 'query_database' tool."
+        # Add database tool definition
+        db_tool = {
+            "name": "query_database",
+            "description": "Execute a SQL query against the SQLite database. Use this to retrieve information.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The SQL query to execute"
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+        if not hasattr(self, 'tools'):
+            self.tools = []
+        self.tools.append(db_tool)
         {% endif %}
 
     {% if tools %}
     def _execute_tool(self, tool_name: str, tool_input: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a tool call. Override this method to implement custom tool logic."""
+        {% if db_path %}
+        if tool_name == "query_database":
+            return self.query_database(tool_input["query"])
+        {% endif %}
         # Default implementation - override in subclass for custom tools
         return {"result": f"Tool {tool_name} executed with input: {tool_input}"}
+    {% endif %}
+
+    {% if db_path %}
+    def query_database(self, query: str) -> Dict[str, Any]:
+        """Execute a SQL query against the database."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(query)
+            results = [dict(row) for row in cursor.fetchall()]
+            conn.close()
+            return {"status": "success", "results": results}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
     {% endif %}
 
     {% if enable_multi_step %}
@@ -85,17 +135,29 @@ class {{ agent_name }}:
             return self.run_multi_step(task)
         {% endif %}
         
+        {% if provider == 'huggingface' %}
+        messages = [{"role": "system", "content": self.prompt}, {"role": "user", "content": task}]
+        response = self.client.chat_completion(
+            model=self.model,
+            messages=messages,
+            max_tokens=2048,
+            stream=False
+        )
+        # Note: Tool calling with HF InferenceClient is model-dependent and may require different handling.
+        # For this implementation, we'll focus on text generation.
+        return response.choices[0].message.content
+        {% else %}
         response = self.client.messages.create(
             model=os.environ.get("ANTHROPIC_MODEL", "{{ model }}"),
             max_tokens=2048,
             system=self.prompt,
             messages=[
                 {"role": "user", "content": task}
-            ]{% if tools %},
+            ]{% if tools or db_path %},
             tools=self.tools{% endif %}
         )
         
-        {% if tools %}
+        {% if tools or db_path %}
         # Handle tool use in single-step mode
         if response.stop_reason == "tool_use":
             tool_uses = [block for block in response.content if block.type == "tool_use"]
@@ -117,12 +179,14 @@ class {{ agent_name }}:
                     {"role": "user", "content": task},
                     {"role": "assistant", "content": response.content},
                     {"role": "user", "content": tool_results}
-                ]
+                ],
+                tools=self.tools
             )
             return follow_up.content[0].text
         {% endif %}
         
         return response.content[0].text
+        {% endif %}
 
 if __name__ == '__main__':
     import os
@@ -137,9 +201,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Ensure API key is set
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
     if not api_key:
-        raise ValueError("ANTHROPIC_API_KEY environment variable not set. Please set it in your .env file or environment.")
+        raise ValueError("API key not found. Please set ANTHROPIC_API_KEY or HUGGINGFACEHUB_API_TOKEN.")
 
     try:
         agent = {{ agent_name }}(api_key=api_key)

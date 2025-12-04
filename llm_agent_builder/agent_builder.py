@@ -24,7 +24,8 @@ class AgentBuilder:
         provider: str = "anthropic", 
         stream: bool = False,
         tools: Optional[List[Dict[str, Any]]] = None,
-        enable_multi_step: bool = False
+        enable_multi_step: bool = False,
+        db_path: Optional[str] = None
     ) -> str:
         """
         Generates the Python code for a new agent.
@@ -37,6 +38,7 @@ class AgentBuilder:
         :param stream: Whether to stream the response.
         :param tools: Optional list of tool definitions for tool calling support.
         :param enable_multi_step: Enable multi-step workflow capabilities.
+        :param db_path: Optional path to a SQLite database.
         :return: The generated Python code as a string.
         """
         
@@ -45,7 +47,9 @@ class AgentBuilder:
             prompt=prompt,
             example_task=example_task,
             model=model,
+            provider=provider,
             stream=stream,
             tools=tools or [],
-            enable_multi_step=enable_multi_step
+            enable_multi_step=enable_multi_step,
+            db_path=db_path
         )
