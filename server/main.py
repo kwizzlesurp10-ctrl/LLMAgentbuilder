@@ -2,6 +2,7 @@ import os
 import sys
 import time
 from typing import Dict
+from pathlib import Path
 import subprocess
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,7 +19,8 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from llm_agent_builder.agent_builder import AgentBuilder
-from server.models import GenerateRequest, ProviderEnum
+from llm_agent_builder.agent_engine import AgentEngine
+from server.models import GenerateRequest, ProviderEnum, TestAgentRequest
 from server.sandbox import run_in_sandbox
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -109,6 +111,68 @@ async def generate_agent(request: Request, generate_request: GenerateRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Generation error: {str(e)}")
+
+@app.post("/api/test-agent")
+@limiter.limit("10/minute")
+async def test_agent(request: Request, test_request: TestAgentRequest):
+    """
+    Test a built agent using the AgentEngine.
+    
+    This endpoint allows testing agents programmatically without CLI output,
+    suitable for HuggingFace Spaces and automated testing.
+    
+    Either agent_code or agent_path must be provided.
+    """
+    try:
+        # Validate that at least one source is provided
+        if not test_request.agent_code and not test_request.agent_path:
+            raise HTTPException(
+                status_code=400,
+                detail="Either agent_code or agent_path must be provided"
+            )
+        
+        # Validate code length if provided
+        if test_request.agent_code and len(test_request.agent_code) > 100000:
+            raise HTTPException(
+                status_code=400,
+                detail="Agent code exceeds maximum size limit (100KB)"
+            )
+        
+        # Validate task length
+        if len(test_request.task) > 5000:
+            raise HTTPException(
+                status_code=400,
+                detail="Task exceeds maximum length (5000 characters)"
+            )
+        
+        # Create engine
+        engine = AgentEngine(timeout=test_request.timeout or 60)
+        
+        # Determine agent source
+        if test_request.agent_code:
+            agent_source = test_request.agent_code
+        else:
+            # Validate path exists
+            agent_path = Path(test_request.agent_path)
+            if not agent_path.exists():
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Agent file not found: {test_request.agent_path}"
+                )
+            agent_source = agent_path
+        
+        # Execute agent
+        result = engine.execute_with_timeout(agent_source, test_request.task)
+        
+        # Return structured result
+        return result.to_dict()
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Test execution error: {str(e)}")
 
 @app.get("/health")
 @app.get("/healthz")
