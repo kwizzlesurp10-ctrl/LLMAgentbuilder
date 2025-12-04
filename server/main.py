@@ -113,7 +113,7 @@ async def generate_agent(request: Request, generate_request: GenerateRequest):
 @app.get("/health")
 @app.get("/healthz")
 async def health_check():
-    return {"status": "ok"}
+    return {"status": "ok", "version": "1.1.0"}
 
 # Serve React App
 # Mount the static files from the frontend build directory
