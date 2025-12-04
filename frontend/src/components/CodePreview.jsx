@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const CodePreview = ({ code, path }) => {
+const CodePreview = ({ code, path, testResult }) => {
     const [copied, setCopied] = useState(false);
 
     const copyToClipboard = () => {
@@ -52,6 +52,25 @@ const CodePreview = ({ code, path }) => {
             <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                 💡 <strong>Tip:</strong> Save this code to a .py file and run it with your API key set.
             </div>
+
+            {testResult && (
+                <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--glass-border)', paddingTop: '1.5rem' }}>
+                    <h3 style={{ marginBottom: '1rem', color: 'var(--accent-primary)' }}>Test Result</h3>
+                    <div style={{
+                        background: 'rgba(0, 0, 0, 0.3)',
+                        padding: '1rem',
+                        borderRadius: '0.5rem',
+                        border: '1px solid var(--glass-border)',
+                        fontFamily: 'monospace',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        maxHeight: '300px',
+                        overflowY: 'auto'
+                    }}>
+                        {testResult}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const AgentForm = ({ onGenerate, isLoading, generatedCode }) => {
+const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
     const [formData, setFormData] = useState({
         name: '',
         prompt: '',
@@ -9,7 +9,6 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode }) => {
         model: 'claude-3-5-sonnet-20241022',
         stream: false
     });
-    const [executionResult, setExecutionResult] = useState(null);
     const [isExecuting, setIsExecuting] = useState(false);
 
     const handleChange = (e) => {
@@ -35,13 +34,13 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         onGenerate(formData);
-        setExecutionResult(null);
+        if (onTestResult) onTestResult(null);
     };
 
     const handleTestAgent = async () => {
         if (!generatedCode) return;
         setIsExecuting(true);
-        setExecutionResult(null);
+        if (onTestResult) onTestResult(null);
         try {
             const response = await fetch('http://localhost:8000/api/execute', {
                 method: 'POST',
@@ -55,12 +54,12 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode }) => {
             });
             const data = await response.json();
             if (data.status === 'success') {
-                setExecutionResult(data.output);
+                if (onTestResult) onTestResult(data.output);
             } else {
-                setExecutionResult(`Error: ${data.detail}`);
+                if (onTestResult) onTestResult(`Error: ${data.detail}`);
             }
         } catch (error) {
-            setExecutionResult(`Error: ${error.message}`);
+            if (onTestResult) onTestResult(`Error: ${error.message}`);
         } finally {
             setIsExecuting(false);
         }
@@ -186,13 +185,7 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode }) => {
                 </div>
             </form>
 
-            {executionResult && (
-                <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid #dee2e6' }}>
-                    <h3>Execution Result:</h3>
-                    <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{executionResult}</pre>
-                </div>
-            )}
-        </div>
+        </div >
     );
 };
 

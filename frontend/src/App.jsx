@@ -5,6 +5,7 @@ import CodePreview from './components/CodePreview';
 function App() {
   const [generatedCode, setGeneratedCode] = useState(null);
   const [generatedPath, setGeneratedPath] = useState(null);
+  const [testResult, setTestResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [theme, setTheme] = useState('dark');
@@ -26,6 +27,7 @@ function App() {
   const handleGenerate = async (formData) => {
     setIsLoading(true);
     setError(null);
+    setTestResult(null);
     try {
       // Use relative URL for production (served by same origin)
       // For dev (different ports), we might need full URL, but let's assume proxy or CORS handles it.
@@ -108,8 +110,17 @@ function App() {
       )}
 
       <div className="layout">
-        <AgentForm onGenerate={handleGenerate} isLoading={isLoading} generatedCode={generatedCode} />
-        <CodePreview code={generatedCode} path={generatedPath} />
+        <AgentForm
+          onGenerate={handleGenerate}
+          isLoading={isLoading}
+          generatedCode={generatedCode}
+          onTestResult={setTestResult}
+        />
+        <CodePreview
+          code={generatedCode}
+          path={generatedPath}
+          testResult={testResult}
+        />
       </div>
     </div>
   );
