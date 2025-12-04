@@ -1,0 +1,20 @@
+INFO:     Will watch for changes in these directories: ['/home/keef/Documents/agentsbuilder/LLMAgentbuilder']
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:     Started reloader process [146601] using WatchFiles
+Starting server from /home/keef/Documents/agentsbuilder/LLMAgentbuilder
+INFO:     Started server process [146603]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+DEBUG: sys.path: ['/home/keef/Documents/agentsbuilder/LLMAgentbuilder', '/home/keef/Documents/agentsbuilder/LLMAgentbuilder', '/home/keef/Documents/agentsbuilder/LLMAgentbuilder', '/home/keef/Documents/agentsbuilder/LLMAgentbuilder', '/home/keef/Documents/agentsbuilder/LLMAgentbuilder/server', '/usr/lib/python310.zip', '/usr/lib/python3.10', '/usr/lib/python3.10/lib-dynload', '/home/keef/Documents/agentsbuilder/LLMAgentbuilder/.venv/lib/python3.10/site-packages']
+DEBUG: llm_agent_builder: /home/keef/Documents/agentsbuilder/LLMAgentbuilder/llm_agent_builder/__init__.py
+DEBUG: agent_engine imported successfully
+✓ Serving frontend from: /home/keef/Documents/agentsbuilder/LLMAgentbuilder/frontend/dist
+INFO:     127.0.0.1:57684 - "POST /api/test-agent HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'tests/test_agent_engine.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [146603]
+INFO:     Started server process [147468]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
