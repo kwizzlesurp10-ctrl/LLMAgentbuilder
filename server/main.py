@@ -77,6 +77,8 @@ async def execute_agent(request: Request, execute_request: ExecuteRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except subprocess.TimeoutExpired:
         raise HTTPException(status_code=408, detail="Execution timed out")
+    except HTTPException: # Re-raise HTTPException directly
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
 
@@ -102,6 +104,8 @@ async def generate_agent(request: Request, generate_request: GenerateRequest):
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException: # Re-raise HTTPException directly
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Generation error: {str(e)}")
 

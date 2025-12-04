@@ -74,16 +74,38 @@ LLM Agent Builder is a comprehensive Python application that enables developers 
 
 ## 📖 Usage
 
+### Web Interface (Default)
+
+The easiest way to use LLM Agent Builder is via the web interface.
+
+1. **Launch the application:**
+
+   ```bash
+   python main.py
+   # or
+   llm-agent-builder
+   ```
+
+2. **Access the UI:**
+
+   Open your browser to `http://localhost:7860`.
+
+   The web interface allows you to:
+   - Generate agents using a simple form
+   - Preview and copy generated code
+   - Test agents directly in the browser
+   - Switch between dark and light themes
+
 ### Command Line Interface
+
+You can still use the CLI for scripting or if you prefer the terminal.
 
 #### Generate an Agent
 
 **Interactive Mode:**
 
 ```bash
-llm-agent-builder generate
-# or simply
-llm-agent-builder
+llm-agent-builder generate --interactive
 ```
 
 **Command-Line Mode:**

@@ -137,5 +137,4 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
-# Generated agents
-generated_agents/
+

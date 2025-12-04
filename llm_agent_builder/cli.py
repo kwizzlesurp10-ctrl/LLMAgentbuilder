@@ -198,12 +198,21 @@ Examples:
     batch_parser.add_argument("config_file", help="Path to JSON configuration file")
     batch_parser.add_argument("--output", default="generated_agents", help="Output directory for generated agents")
     
+    # Web subcommand
+    web_parser = subparsers.add_parser("web", help="Launch the web interface")
+    web_parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
+    web_parser.add_argument("--port", type=int, default=7860, help="Port to bind to")
+    
     args = parser.parse_args()
     
     # Handle no command (default to generate in interactive mode)
+    # Handle no command (default to web interface)
     if not args.command:
-        args.command = "generate"
-        args.interactive = True
+        print("No command provided. Launching web interface...")
+        args.command = "web"
+        # Set default values for web command since they weren't parsed
+        args.host = "0.0.0.0"
+        args.port = 7860
     
     try:
         if args.command == "generate":
@@ -281,11 +290,27 @@ Examples:
         elif args.command == "batch":
             batch_generate(args.config_file, args.output)
             
+        elif args.command == "web":
+            run_web_server(args.host, args.port)
+            
     except KeyboardInterrupt:
         print("\n\nOperation cancelled by user.")
         sys.exit(1)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+def run_web_server(host: str, port: int) -> None:
+    """Run the web interface server."""
+    try:
+        import uvicorn
+        print(f"Starting web interface at http://{host}:{port}")
+        uvicorn.run("server.main:app", host=host, port=port, reload=False)
+    except ImportError:
+        print("Error: uvicorn is not installed. Please install it with 'pip install uvicorn'.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error starting web server: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
