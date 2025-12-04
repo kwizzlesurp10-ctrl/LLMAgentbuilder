@@ -5,6 +5,15 @@ import json
 import subprocess
 from typing import Optional, List
 from pathlib import Path
+
+# Add parent directory to path to allow running script directly
+# This allows the script to be run as: python llm_agent_builder/cli.py
+# or as: python -m llm_agent_builder.cli
+_script_dir = Path(__file__).resolve().parent
+_project_root = _script_dir.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
 from llm_agent_builder.agent_builder import AgentBuilder
 from dotenv import load_dotenv
 
