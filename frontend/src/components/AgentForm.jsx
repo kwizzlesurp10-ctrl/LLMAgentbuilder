@@ -96,13 +96,23 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode }) => {
                     </select>
                 </div>
 
-                <div className="form-group">
-                    <label htmlFor="model">Model</label>
+                <div className="form-group" style={{
+                    background: 'rgba(59, 130, 246, 0.05)',
+                    padding: '1rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid rgba(59, 130, 246, 0.2)',
+                    marginTop: '0.5rem',
+                    marginBottom: '1.5rem'
+                }}>
+                    <label htmlFor="model" style={{ color: 'var(--accent-primary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span>🧠</span> Model
+                    </label>
                     <select
                         id="model"
                         name="model"
                         value={formData.model}
                         onChange={handleChange}
+                        style={{ background: 'rgba(15, 23, 42, 0.8)' }}
                     >
                         {formData.provider === 'anthropic' ? (
                             <>
