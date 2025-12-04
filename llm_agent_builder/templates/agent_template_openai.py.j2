@@ -42,13 +42,16 @@ class {% if agent_name %}{{ agent_name }}{% else %}Agent{% endif %}:
 
             # Extract response content
             final_result = response.choices[0].message.content
+            if final_result is None:
+                final_result = "No response content received"
+
             messages.append({
                 "role": "assistant",
                 "content": final_result
             })
 
             # Check if task is complete (simple heuristic - can be enhanced)
-            if "complete" in final_result.lower() or "finished" in final_result.lower():
+            if final_result and ("complete" in final_result.lower() or "finished" in final_result.lower()):
                 break
 
             # Add continuation prompt for next step
