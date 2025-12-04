@@ -18,3 +18,11 @@ INFO:     Finished server process [146603]
 INFO:     Started server process [147468]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'llm_agent_builder/agent_engine.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [147468]
+INFO:     Started server process [148470]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.

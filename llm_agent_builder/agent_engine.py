@@ -197,19 +197,26 @@ class AgentEngine:
                 # Use GitHub Copilot API for execution
                 return self._execute_with_copilot(agent_source, task, copilot_client, start_time)
             
-            # Check if agent_source is a file path first
-            agent_path = Path(agent_source) if isinstance(agent_source, (str, Path)) else None
+            # Determine if source is file or code
+            is_file = False
+            if isinstance(agent_source, Path):
+                is_file = True
+            elif isinstance(agent_source, str):
+                if '\n' in agent_source:
+                    is_file = False
+                elif os.path.exists(agent_source) or agent_source.endswith('.py'):
+                    is_file = True
             
-            if agent_path and agent_path.exists():
+            if is_file:
+                agent_path = Path(agent_source)
+                if not agent_path.exists():
+                    return ExecutionResult(
+                        status=ExecutionStatus.AGENT_NOT_FOUND,
+                        output="",
+                        error=f"Agent file not found: {agent_source}",
+                        execution_time=time.time() - start_time
+                    )
                 agent_class = self._load_agent_from_file(agent_path)
-            elif agent_path and not agent_path.exists():
-                # File path provided but doesn't exist
-                return ExecutionResult(
-                    status=ExecutionStatus.AGENT_NOT_FOUND,
-                    output="",
-                    error=f"Agent file not found: {agent_source}",
-                    execution_time=time.time() - start_time
-                )
             else:
                 # Assume it's code string
                 agent_class = self._load_agent_from_code(str(agent_source))
@@ -285,19 +292,26 @@ class AgentEngine:
                 # Use GitHub Copilot API for execution
                 return self._execute_with_copilot(agent_source, task, copilot_client, start_time)
             
-            # Check if agent_source is a file path first
-            agent_path = Path(agent_source) if isinstance(agent_source, (str, Path)) else None
+            # Determine if source is file or code
+            is_file = False
+            if isinstance(agent_source, Path):
+                is_file = True
+            elif isinstance(agent_source, str):
+                if '\n' in agent_source:
+                    is_file = False
+                elif os.path.exists(agent_source) or agent_source.endswith('.py'):
+                    is_file = True
             
-            if agent_path and agent_path.exists():
+            if is_file:
+                agent_path = Path(agent_source)
+                if not agent_path.exists():
+                    return ExecutionResult(
+                        status=ExecutionStatus.AGENT_NOT_FOUND,
+                        output="",
+                        error=f"Agent file not found: {agent_source}",
+                        execution_time=time.time() - start_time
+                    )
                 agent_file = str(agent_path.absolute())
-            elif agent_path and not agent_path.exists():
-                # File path provided but doesn't exist
-                return ExecutionResult(
-                    status=ExecutionStatus.AGENT_NOT_FOUND,
-                    output="",
-                    error=f"Agent file not found: {agent_source}",
-                    execution_time=time.time() - start_time
-                )
             else:
                 # Create temporary file from code string
                 with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as temp_file:
