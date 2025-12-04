@@ -74,38 +74,16 @@ LLM Agent Builder is a comprehensive Python application that enables developers 
 
 ## 📖 Usage
 
-### Web Interface (Default)
-
-The easiest way to use LLM Agent Builder is via the web interface.
-
-1. **Launch the application:**
-
-   ```bash
-   python main.py
-   # or
-   llm-agent-builder
-   ```
-
-2. **Access the UI:**
-
-   Open your browser to `http://localhost:7860`.
-
-   The web interface allows you to:
-   - Generate agents using a simple form
-   - Preview and copy generated code
-   - Test agents directly in the browser
-   - Switch between dark and light themes
-
 ### Command Line Interface
-
-You can still use the CLI for scripting or if you prefer the terminal.
 
 #### Generate an Agent
 
 **Interactive Mode:**
 
 ```bash
-llm-agent-builder generate --interactive
+llm-agent-builder generate
+# or simply
+llm-agent-builder
 ```
 
 **Command-Line Mode:**
@@ -116,8 +94,7 @@ llm-agent-builder generate \
   --prompt "You are an expert code reviewer specializing in Python." \
   --task "Review this function for bugs and suggest improvements." \
   --model "claude-3-5-sonnet-20241022" \
-  --provider "anthropic" \
-  --template "path/to/your/template.j2"
+  --provider "anthropic"
 ```
 
 #### List Generated Agents
@@ -201,6 +178,7 @@ llm-agent-builder batch agents.json
 LLMAgentbuilder/
 ├── llm_agent_builder/      # Core package
 │   ├── agent_builder.py    # AgentBuilder class with multi-step & tool support
+│   ├── agent_engine.py     # AgentEngine for executing agents
 │   ├── cli.py               # CLI with subcommands (generate, list, test, batch)
 │   └── templates/           # Jinja2 templates for agent generation
 │       ├── agent_template.py.j2
@@ -218,8 +196,23 @@ LLMAgentbuilder/
 │   └── tailwind.config.js   # Tailwind CSS configuration
 ├── tests/                   # Comprehensive test suite
 │   ├── test_agent_builder.py
+│   ├── test_agent_engine.py
 │   ├── test_cli.py
 │   └── test_api.py
+├── docs/                    # Documentation files
+│   ├── AGENT_ENGINE_USAGE.md
+│   ├── GITHUB_MCP_SETUP.md
+│   └── ...                  # Other documentation files
+├── scripts/                 # Utility scripts
+│   ├── setup_github_mcp.sh
+│   ├── test_engine.py
+│   └── ...                  # Other utility scripts
+├── examples/                # Example workflows and code
+│   ├── workflow_example.py
+│   └── workflow_impl.py
+├── generated_agents/        # Generated agent files
+│   └── *.py                 # Generated agent Python files
+├── test_outputs/            # Test output files (gitignored)
 ├── .github/workflows/       # CI/CD workflows
 │   └── ci.yml              # GitHub Actions for testing & linting
 ├── pyproject.toml          # Modern Python project configuration
@@ -408,15 +401,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 **Issue**: Agent execution times out
 
 - **Solution**: Check that your agent code is valid Python and doesn't have infinite loops. The sandbox has a 30-second timeout.
-
-**Issue**: Hugging Face Spaces build fails with "openvscode-server" download error
-
-- **Cause**: This is a known issue with Hugging Face Spaces' dev-mode feature. The injected vscode stage tries to download openvscode-server from GitHub, which can fail due to network issues.
-- **Solutions**:
-  1. **Disable dev-mode** (recommended): In your Space settings, disable "Dev Mode" if you don't need the VS Code interface
-  2. **Retry the build**: This is often a temporary network issue on HF Spaces' side
-  3. **Wait and retry**: HF Spaces infrastructure issues are usually resolved within a few hours
-- **Note**: Our Dockerfile includes all necessary tools (`wget`, `tar`, `git`) for dev-mode compatibility, but we cannot control the injected stages that HF Spaces adds.
 
 ## 📈 Roadmap
 

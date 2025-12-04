@@ -41,12 +41,19 @@ def run_in_sandbox(code: str, task: str, timeout: int = 30, memory_limit_mb: int
         # Note: The generated agents expect --task argument
         cmd = [sys.executable, temp_file_path, "--task", task]
         
+        # Set environment variables for GitHub Copilot token if available
+        env = os.environ.copy()
+        github_token = env.get("GITHUB_COPILOT_TOKEN") or env.get("GITHUB_PAT")
+        if github_token:
+            env["GITHUB_COPILOT_TOKEN"] = github_token
+        
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            preexec_fn=set_limits
+            preexec_fn=set_limits,
+            env=env
         )
         
         try:

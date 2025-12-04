@@ -88,7 +88,7 @@ def test_agent(agent_path: str, task: Optional[str] = None) -> None:
         print(f"Error running agent: {e}")
         sys.exit(1)
 
-def batch_generate(config_file: str, output_dir: str = "generated_agents", template: Optional[str] = None) -> None:
+def batch_generate(config_file: str, output_dir: str = "generated_agents") -> None:
     """Generate multiple agents from a JSON configuration file."""
     config_path = Path(config_file)
     if not config_path.exists():
@@ -103,7 +103,7 @@ def batch_generate(config_file: str, output_dir: str = "generated_agents", templ
             print("Error: Configuration file must contain a JSON array of agent configurations.")
             sys.exit(1)
         
-        builder = AgentBuilder(template_path=template)
+        builder = AgentBuilder()
         output_path = Path(output_dir)
         output_path.mkdir(exist_ok=True)
         
@@ -182,9 +182,7 @@ Examples:
     gen_parser.add_argument("--output", default="generated_agents", help="Output directory for the generated agent")
     gen_parser.add_argument("--model", help="Model to use (overrides .env)")
     gen_parser.add_argument("--provider", default="anthropic", choices=["anthropic", "huggingface"], help="LLM Provider to use")
-    gen_parser.add_argument("--template", help="Path to a custom Jinja2 template file")
     gen_parser.add_argument("--interactive", action="store_true", help="Run in interactive mode")
-    gen_parser.add_argument("--db-path", help="Path to a SQLite database for the agent to use")
     
     # List subcommand
     list_parser = subparsers.add_parser("list", help="List all generated agents")
@@ -199,33 +197,23 @@ Examples:
     batch_parser = subparsers.add_parser("batch", help="Generate multiple agents from a JSON config file")
     batch_parser.add_argument("config_file", help="Path to JSON configuration file")
     batch_parser.add_argument("--output", default="generated_agents", help="Output directory for generated agents")
-    batch_parser.add_argument("--template", help="Path to a custom Jinja2 template file")
-    
-    # Web subcommand
-    web_parser = subparsers.add_parser("web", help="Launch the web interface")
-    web_parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
-    web_parser.add_argument("--port", type=int, default=7860, help="Port to bind to")
     
     args = parser.parse_args()
     
-    # Handle no command (default to generate in interactive mode)
-    # Handle no command (default to web interface)
+    # Track if command was auto-set (no command provided by user)
+    command_auto_set = False
     if not args.command:
-        print("No command provided. Launching web interface...")
-        args.command = "web"
-        # Set default values for web command since they weren't parsed
-        args.host = "0.0.0.0"
-        args.port = 7860
+        args.command = "generate"
+        args.interactive = True
+        command_auto_set = True
     
     try:
         if args.command == "generate":
-            # Interactive mode: triggered by --interactive flag or when no arguments provided
-            # Check if user provided any arguments after the script name:
-            # - len(sys.argv) == 1: no command provided (handled above, sets args.interactive=True)
-            # - len(sys.argv) == 2: only "generate" command provided (no additional args)
-            # - len(sys.argv) > 2: additional arguments provided (use command-line mode)
-            # This check is robust and doesn't depend on args.interactive being set above
-            no_args_provided = len(sys.argv) <= 2
+            # Interactive mode: triggered by --interactive flag, auto-set command, or no arguments after "generate"
+            # Check if user provided any arguments after "generate" subcommand
+            # - command_auto_set: user ran script with no command (sys.argv length 1)
+            # - len(sys.argv) == 2: user ran "generate" with no additional args
+            no_args_provided = command_auto_set or len(sys.argv) == 2
             
             if args.interactive or no_args_provided:
                 print("Starting interactive agent generation...")
@@ -236,8 +224,6 @@ Examples:
                 default_model = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
                 model = get_input("Model", default_model)
                 provider = get_input("Provider (anthropic/huggingface)", args.provider)
-                template = get_input("Custom Template Path (optional)", "")
-                db_path = get_input("SQLite Database Path (optional)", "")
                 
                 # Validate provider
                 if provider not in ["anthropic", "huggingface"]:
@@ -250,8 +236,6 @@ Examples:
                 output = args.output
                 model = args.model
                 provider = args.provider
-                template = args.template
-                db_path = args.db_path
             
             # Validate agent name
             try:
@@ -265,7 +249,7 @@ Examples:
                 os.environ["ANTHROPIC_MODEL"] = model
             
             # Create an instance of the AgentBuilder
-            builder = AgentBuilder(template_path=template)
+            builder = AgentBuilder()
             
             # Generate the agent code
             default_model = model or ("claude-3-5-sonnet-20241022" if provider == "anthropic" else "meta-llama/Meta-Llama-3-8B-Instruct")
@@ -274,8 +258,7 @@ Examples:
                 prompt=prompt, 
                 example_task=task, 
                 model=default_model,
-                provider=provider,
-                db_path=db_path if db_path else None
+                provider=provider
             )
             
             # Define the output path for the generated agent
@@ -296,29 +279,13 @@ Examples:
             test_agent(args.agent_path, args.task)
             
         elif args.command == "batch":
-            batch_generate(args.config_file, args.output, args.template)
-            
-        elif args.command == "web":
-            run_web_server(args.host, args.port)
+            batch_generate(args.config_file, args.output)
             
     except KeyboardInterrupt:
         print("\n\nOperation cancelled by user.")
         sys.exit(1)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
-
-def run_web_server(host: str, port: int) -> None:
-    """Run the web interface server."""
-    try:
-        import uvicorn
-        print(f"Starting web interface at http://{host}:{port}")
-        uvicorn.run("server.main:app", host=host, port=port, reload=False)
-    except ImportError:
-        print("Error: uvicorn is not installed. Please install it with 'pip install uvicorn'.")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error starting web server: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":

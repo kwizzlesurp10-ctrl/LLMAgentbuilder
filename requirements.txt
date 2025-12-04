@@ -8,4 +8,3 @@ prometheus-fastapi-instrumentator
 huggingface_hub
 slowapi
 tenacity
-requests

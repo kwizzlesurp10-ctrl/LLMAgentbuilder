@@ -7,8 +7,8 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Base Python image with git (for Hugging Face Spaces dev-mode compatibility)
-# Using python:3.11 (not slim) which includes git by default
-FROM python:3.11 as base
+# Using python:3.10 (not slim) which includes git by default
+FROM python:3.10 as base
 # Ensure git, build tools, and utilities needed for HF Spaces dev-mode are available
 # wget and tar are needed for the injected vscode stage in dev-mode
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -44,8 +44,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY llm_agent_builder/ ./llm_agent_builder/
 COPY server/ ./server/
 COPY main.py .
-COPY workflow.db .
-COPY workflow_impl.py .
+# Create empty init for server if not exists (though we have it)
+# COPY server/__init__.py ./server/ 
 
 # Copy frontend build from stage 1
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist

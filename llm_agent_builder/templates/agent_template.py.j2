@@ -1,123 +1,50 @@
-import anthropic
 import os
 from typing import Optional, List, Dict, Any
-{% if db_path %}
-import sqlite3
-{% endif %}
+try:
+    from llm_agent_builder.copilot_client import CopilotClient
+    COPILOT_AVAILABLE = True
+except ImportError:
+    COPILOT_AVAILABLE = False
 {% if enable_multi_step or tools %}
 import json
 {% endif %}
 
-class {{ agent_name }}:
+class {% if agent_name %}{{ agent_name }}{% else %}Agent{% endif %}:
     def __init__(self, api_key):
-        {% if provider == 'huggingface' %}
-        from huggingface_hub import InferenceClient
-        self.client = InferenceClient(token=api_key)
-        self.model = "{{ model }}"
-        {% else %}
-        self.client = anthropic.Anthropic(api_key=api_key)
-        {% endif %}
+        if not COPILOT_AVAILABLE:
+            raise ImportError("CopilotClient not available. Please ensure llm_agent_builder.copilot_client is installed.")
+        self.client = CopilotClient(bearer_token=api_key)
         self.prompt = "{{- prompt -}}"
         {% if tools %}
         self.tools = {{ tools | tojson }}
-        {% endif %}
-        {% if db_path %}
-        self.db_path = "{{ db_path }}"
-        self.prompt += "\n\nYou have access to a SQLite database. You can query it using the 'query_database' tool."
-        # Add database tool definition
-        db_tool = {
-            "name": "query_database",
-            "description": "Execute a SQL query against the SQLite database. Use this to retrieve information.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "The SQL query to execute"
-                    }
-                },
-                "required": ["query"]
-            }
-        }
-        if not hasattr(self, 'tools'):
-            self.tools = []
-        self.tools.append(db_tool)
         {% endif %}
 
     {% if tools %}
     def _execute_tool(self, tool_name: str, tool_input: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a tool call. Override this method to implement custom tool logic."""
-        {% if db_path %}
-        if tool_name == "query_database":
-            return self.query_database(tool_input["query"])
-        {% endif %}
         # Default implementation - override in subclass for custom tools
         return {"result": f"Tool {tool_name} executed with input: {tool_input}"}
-    {% endif %}
-
-    {% if db_path %}
-    def query_database(self, query: str) -> Dict[str, Any]:
-        """Execute a SQL query against the database."""
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute(query)
-            results = [dict(row) for row in cursor.fetchall()]
-            conn.close()
-            return {"status": "success", "results": results}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
     {% endif %}
 
     {% if enable_multi_step %}
     def run_multi_step(self, task: str, max_steps: int = 5) -> str:
         """Run a multi-step workflow where the agent can iterate on the task."""
-        messages = [{"role": "user", "content": task}]
+        messages = [{"role": "user", "content": f"{self.prompt}\n\nTask: {task}"}]
         final_result = None
         
         for step in range(max_steps):
-            response = self.client.messages.create(
-                model=os.environ.get("ANTHROPIC_MODEL", "{{ model }}"),
-                max_tokens=2048,
-                system=self.prompt,
-                messages=messages{% if tools %},
-                tools=self.tools{% endif %}
-            )
+            response = self.client.get_chat_completion(messages=messages)
             
-            # Handle tool use if present
-            {% if tools %}
-            if response.stop_reason == "tool_use":
-                tool_uses = [block for block in response.content if block.type == "tool_use"]
-                for tool_use in tool_uses:
-                    tool_result = self._execute_tool(tool_use.name, tool_use.input)
-                    messages.append({
-                        "role": "assistant",
-                        "content": response.content
-                    })
-                    messages.append({
-                        "role": "user",
-                        "content": [{
-                            "type": "tool_result",
-                            "tool_use_id": tool_use.id,
-                            "content": json.dumps(tool_result)
-                        }]
-                    })
-                continue
-            {% endif %}
+            # Extract response content
+            final_result = response.content
+            messages.append({
+                "role": "assistant",
+                "content": response.content
+            })
             
-            # Extract text response
-            text_content = [block.text for block in response.content if block.type == "text"]
-            if text_content:
-                final_result = text_content[0]
-                messages.append({
-                    "role": "assistant",
-                    "content": response.content
-                })
-                
-                # Check if task is complete (simple heuristic - can be enhanced)
-                if "complete" in final_result.lower() or "finished" in final_result.lower():
-                    break
+            # Check if task is complete (simple heuristic - can be enhanced)
+            if "complete" in final_result.lower() or "finished" in final_result.lower():
+                break
             
             # Add continuation prompt for next step
             if step < max_steps - 1:
@@ -135,58 +62,13 @@ class {{ agent_name }}:
             return self.run_multi_step(task)
         {% endif %}
         
-        {% if provider == 'huggingface' %}
-        messages = [{"role": "system", "content": self.prompt}, {"role": "user", "content": task}]
-        response = self.client.chat_completion(
-            model=self.model,
-            messages=messages,
-            max_tokens=2048,
-            stream=False
-        )
-        # Note: Tool calling with HF InferenceClient is model-dependent and may require different handling.
-        # For this implementation, we'll focus on text generation.
-        return response.choices[0].message.content
-        {% else %}
-        response = self.client.messages.create(
-            model=os.environ.get("ANTHROPIC_MODEL", "{{ model }}"),
-            max_tokens=2048,
-            system=self.prompt,
-            messages=[
-                {"role": "user", "content": task}
-            ]{% if tools or db_path %},
-            tools=self.tools{% endif %}
-        )
+        # Use GitHub Copilot chat completion API
+        messages = [
+            {"role": "user", "content": f"{self.prompt}\n\nTask: {task}"}
+        ]
         
-        {% if tools or db_path %}
-        # Handle tool use in single-step mode
-        if response.stop_reason == "tool_use":
-            tool_uses = [block for block in response.content if block.type == "tool_use"]
-            tool_results = []
-            for tool_use in tool_uses:
-                tool_result = self._execute_tool(tool_use.name, tool_use.input)
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": tool_use.id,
-                    "content": json.dumps(tool_result)
-                })
-            
-            # Get final response after tool execution
-            follow_up = self.client.messages.create(
-                model=os.environ.get("ANTHROPIC_MODEL", "{{ model }}"),
-                max_tokens=2048,
-                system=self.prompt,
-                messages=[
-                    {"role": "user", "content": task},
-                    {"role": "assistant", "content": response.content},
-                    {"role": "user", "content": tool_results}
-                ],
-                tools=self.tools
-            )
-            return follow_up.content[0].text
-        {% endif %}
-        
-        return response.content[0].text
-        {% endif %}
+        response = self.client.get_chat_completion(messages=messages)
+        return response.content
 
 if __name__ == '__main__':
     import os
@@ -196,18 +78,18 @@ if __name__ == '__main__':
     load_dotenv()
 
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description="Run the {{ agent_name }} agent.")
+    parser = argparse.ArgumentParser(description="Run the {% if agent_name %}{{ agent_name }}{% else %}Agent{% endif %} agent.")
     parser.add_argument("--task", default="{{- example_task -}}", help="The task to be performed by the agent")
     args = parser.parse_args()
 
-    # Ensure API key is set
-    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
+    # Ensure API key is set (GitHub Copilot token)
+    api_key = os.environ.get("GITHUB_COPILOT_TOKEN") or os.environ.get("GITHUB_PAT")
     if not api_key:
-        raise ValueError("API key not found. Please set ANTHROPIC_API_KEY or HUGGINGFACEHUB_API_TOKEN.")
+        raise ValueError("GITHUB_COPILOT_TOKEN or GITHUB_PAT environment variable not set. Please set it in your .env file or environment.")
 
     try:
-        agent = {{ agent_name }}(api_key=api_key)
-        print(f"Running {{ agent_name }} with task: {args.task}\n")
+        agent = {% if agent_name %}{{ agent_name }}{% else %}Agent{% endif %}(api_key=api_key)
+        print(f"Running {% if agent_name %}{{ agent_name }}{% else %}Agent{% endif %} with task: {args.task}\n")
         result = agent.run(args.task)
         print("Response:")
         print("-" * 50)

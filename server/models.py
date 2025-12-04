@@ -14,6 +14,15 @@ class GenerateRequest(BaseModel):
     model: str
     stream: bool = False
     db_path: Optional[str] = None
+    
+    @validator('name')
+    def validate_name(cls, v):
+        if not v or not v.strip():
+            raise ValueError("Agent name cannot be empty")
+        # Ensure name is a valid Python class name
+        if not v[0].isalpha() and v[0] != '_':
+            raise ValueError("Agent name must start with a letter or underscore")
+        return v.strip()
 
     @validator('model')
     def validate_model(cls, v, values):
@@ -35,3 +44,10 @@ class GenerateRequest(BaseModel):
             if v not in allowed:
                 raise ValueError(f"Model {v} not supported for Hugging Face")
         return v
+
+class TestAgentRequest(BaseModel):
+    """Request model for testing an agent."""
+    agent_code: Optional[str] = None
+    agent_path: Optional[str] = None
+    task: str
+    timeout: Optional[int] = 60
