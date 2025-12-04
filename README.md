@@ -116,7 +116,8 @@ llm-agent-builder generate \
   --prompt "You are an expert code reviewer specializing in Python." \
   --task "Review this function for bugs and suggest improvements." \
   --model "claude-3-5-sonnet-20241022" \
-  --provider "anthropic"
+  --provider "anthropic" \
+  --template "path/to/your/template.j2"
 ```
 
 #### List Generated Agents

@@ -88,7 +88,7 @@ def test_agent(agent_path: str, task: Optional[str] = None) -> None:
         print(f"Error running agent: {e}")
         sys.exit(1)
 
-def batch_generate(config_file: str, output_dir: str = "generated_agents") -> None:
+def batch_generate(config_file: str, output_dir: str = "generated_agents", template: Optional[str] = None) -> None:
     """Generate multiple agents from a JSON configuration file."""
     config_path = Path(config_file)
     if not config_path.exists():
@@ -103,7 +103,7 @@ def batch_generate(config_file: str, output_dir: str = "generated_agents") -> No
             print("Error: Configuration file must contain a JSON array of agent configurations.")
             sys.exit(1)
         
-        builder = AgentBuilder()
+        builder = AgentBuilder(template_path=template)
         output_path = Path(output_dir)
         output_path.mkdir(exist_ok=True)
         
@@ -182,6 +182,7 @@ Examples:
     gen_parser.add_argument("--output", default="generated_agents", help="Output directory for the generated agent")
     gen_parser.add_argument("--model", help="Model to use (overrides .env)")
     gen_parser.add_argument("--provider", default="anthropic", choices=["anthropic", "huggingface"], help="LLM Provider to use")
+    gen_parser.add_argument("--template", help="Path to a custom Jinja2 template file")
     gen_parser.add_argument("--interactive", action="store_true", help="Run in interactive mode")
     
     # List subcommand
@@ -197,6 +198,7 @@ Examples:
     batch_parser = subparsers.add_parser("batch", help="Generate multiple agents from a JSON config file")
     batch_parser.add_argument("config_file", help="Path to JSON configuration file")
     batch_parser.add_argument("--output", default="generated_agents", help="Output directory for generated agents")
+    batch_parser.add_argument("--template", help="Path to a custom Jinja2 template file")
     
     # Web subcommand
     web_parser = subparsers.add_parser("web", help="Launch the web interface")
@@ -233,6 +235,7 @@ Examples:
                 default_model = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
                 model = get_input("Model", default_model)
                 provider = get_input("Provider (anthropic/huggingface)", args.provider)
+                template = get_input("Custom Template Path (optional)", "")
                 
                 # Validate provider
                 if provider not in ["anthropic", "huggingface"]:
@@ -245,6 +248,7 @@ Examples:
                 output = args.output
                 model = args.model
                 provider = args.provider
+                template = args.template
             
             # Validate agent name
             try:
@@ -258,7 +262,7 @@ Examples:
                 os.environ["ANTHROPIC_MODEL"] = model
             
             # Create an instance of the AgentBuilder
-            builder = AgentBuilder()
+            builder = AgentBuilder(template_path=template)
             
             # Generate the agent code
             default_model = model or ("claude-3-5-sonnet-20241022" if provider == "anthropic" else "meta-llama/Meta-Llama-3-8B-Instruct")
@@ -288,7 +292,7 @@ Examples:
             test_agent(args.agent_path, args.task)
             
         elif args.command == "batch":
-            batch_generate(args.config_file, args.output)
+            batch_generate(args.config_file, args.output, args.template)
             
         elif args.command == "web":
             run_web_server(args.host, args.port)
