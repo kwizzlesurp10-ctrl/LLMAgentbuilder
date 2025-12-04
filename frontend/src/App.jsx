@@ -34,6 +34,7 @@ function App() {
       // Since we enabled CORS for *, localhost:8000 works for dev.
       // In production (Docker), it will be same origin.
       const apiUrl = import.meta.env.DEV ? 'http://localhost:8000/api/generate' : '/api/generate';
+      console.log('Using API URL:', apiUrl);
 
       const response = await fetch(apiUrl, {
         method: 'POST',

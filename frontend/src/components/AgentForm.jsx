@@ -42,7 +42,8 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
         setIsExecuting(true);
         if (onTestResult) onTestResult(null);
         try {
-            const response = await fetch('http://localhost:8000/api/execute', {
+            const apiUrl = import.meta.env.DEV ? 'http://localhost:8000/api/execute' : '/api/execute';
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
