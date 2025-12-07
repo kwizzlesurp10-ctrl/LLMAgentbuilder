@@ -2,10 +2,12 @@ from enum import Enum
 from pydantic import BaseModel, field_validator
 from typing import Optional, Dict, Any, List
 
+
 class ProviderEnum(str, Enum):
     ANTHROPIC = "anthropic"
     HUGGINGFACE = "huggingface"
     OPENAI = "openai"
+
 
 class GenerateRequest(BaseModel):
     name: str
@@ -17,7 +19,7 @@ class GenerateRequest(BaseModel):
     db_path: Optional[str] = None
     version: Optional[str] = None  # Version identifier (auto-generated if None)
     parent_version: Optional[str] = None  # Parent version for branching
-    
+
     @field_validator('name')
     @classmethod
     def validate_name(cls, v):
@@ -61,12 +63,14 @@ class GenerateRequest(BaseModel):
                 raise ValueError(f"Model {v} not supported for OpenAI")
         return v
 
+
 class TestAgentRequest(BaseModel):
     """Request model for testing an agent."""
     agent_code: Optional[str] = None
     agent_path: Optional[str] = None
     task: str
     timeout: Optional[int] = 60
+
 
 class AgentVersion(BaseModel):
     """Model representing an agent version."""
@@ -82,12 +86,14 @@ class AgentVersion(BaseModel):
     created_at: str
     metadata: Optional[Dict[str, Any]] = {}
 
+
 class AgentVersionResponse(BaseModel):
     """Response model for agent version operations."""
     versions: List[AgentVersion]
     total: int
     page: int = 1
     page_size: int = 10
+
 
 class AgentExport(BaseModel):
     """Model for exporting agent configuration."""
@@ -100,6 +106,7 @@ class AgentExport(BaseModel):
     version: Optional[str] = None
     exported_at: str
     metadata: Optional[Dict[str, Any]] = {}
+
 
 class AgentImportRequest(BaseModel):
     """Request model for importing agent configuration."""

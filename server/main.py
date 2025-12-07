@@ -18,22 +18,6 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 # Add the parent directory to sys.path to import llm_agent_builder
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import sys
-# Force reload to ensure we get the local version
-if 'llm_agent_builder' in sys.modules:
-    del sys.modules['llm_agent_builder']
-if 'llm_agent_builder.agent_engine' in sys.modules:
-    del sys.modules['llm_agent_builder.agent_engine']
-
-print(f"DEBUG: sys.path: {sys.path}")
-try:
-    import llm_agent_builder
-    print(f"DEBUG: llm_agent_builder: {llm_agent_builder.__file__}")
-    import llm_agent_builder.agent_engine
-    print("DEBUG: agent_engine imported successfully")
-except Exception as e:
-    print(f"DEBUG: Import error: {e}")
-
 from llm_agent_builder.agent_builder import AgentBuilder
 from llm_agent_builder.agent_engine import AgentEngine
 from server.models import GenerateRequest, ProviderEnum, TestAgentRequest
@@ -220,12 +204,12 @@ if os.path.exists(frontend_dist) and os.path.exists(index_html_path):
         # Skip API routes and other special paths - let FastAPI handle these
         if full_path.startswith(("api/", "docs", "redoc", "openapi.json", "metrics", "health")):
             raise HTTPException(status_code=404, detail="Not found")
-        
+
         # If the path is a file in dist, serve it (e.g. vite.svg, favicon.ico)
         file_path = os.path.join(frontend_dist, full_path)
         if os.path.exists(file_path) and os.path.isfile(file_path):
             return FileResponse(file_path)
-            
+
         # Otherwise serve index.html for React Router
         return FileResponse(index_html_path, media_type="text/html")
 else:
@@ -244,4 +228,4 @@ else:
         }
     print(f"⚠ Warning: Frontend build directory not found at {frontend_dist}")
     print(f"   Expected path: {frontend_dist}")
-    print(f"   Serving API only. Access API docs at /docs")
+    print("   Serving API only. Access API docs at /docs")
