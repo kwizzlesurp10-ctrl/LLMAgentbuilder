@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 from typing import Optional, Dict, Any, List
 
 class ProviderEnum(str, Enum):
@@ -18,7 +18,8 @@ class GenerateRequest(BaseModel):
     version: Optional[str] = None  # Version identifier (auto-generated if None)
     parent_version: Optional[str] = None  # Parent version for branching
     
-    @validator('name')
+    @field_validator('name')
+    @classmethod
     def validate_name(cls, v):
         if not v or not v.strip():
             raise ValueError("Agent name cannot be empty")
@@ -28,9 +29,10 @@ class GenerateRequest(BaseModel):
             raise ValueError("Agent name must start with a letter or underscore")
         return trimmed
 
-    @validator('model')
-    def validate_model(cls, v, values):
-        provider = values.get('provider')
+    @field_validator('model')
+    @classmethod
+    def validate_model(cls, v, info):
+        provider = info.data.get('provider')
         if provider == ProviderEnum.ANTHROPIC:
             allowed = [
                 "claude-3-5-sonnet-20241022",
