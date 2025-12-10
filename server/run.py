@@ -13,4 +13,4 @@ if 'llm_agent_builder' in sys.modules:
 if __name__ == "__main__":
     print(f"Starting server from {project_root}")
     # We use app_dir to tell uvicorn where to look for the app module
-    uvicorn.run("server.main_new:app", host="0.0.0.0", port=8001, reload=True, app_dir=project_root)
+    uvicorn.run("server.main:app", host="0.0.0.0", port=8000, reload=True, app_dir=project_root)
