@@ -42,7 +42,16 @@ class AgentBuilder:
         :return: The generated Python code as a string.
         """
         
-        return self.template.render(
+        if provider == "huggingface":
+            template_name = "agent_template_hf.py.j2"
+        elif provider == "openai":
+            template_name = "agent_template_openai.py.j2"
+        else:
+            template_name = "agent_template.py.j2"
+            
+        template = self.env.get_template(template_name)
+        
+        return template.render(
             agent_name=agent_name,
             prompt=prompt,
             example_task=example_task,
