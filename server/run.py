@@ -1,6 +1,9 @@
 import sys
 import os
 import uvicorn
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Ensure the project root is in sys.path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
