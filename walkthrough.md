@@ -30,4 +30,10 @@ I have successfully updated the project to be deployable to Hugging Face Spaces.
 1. Create a new Space on Hugging Face.
 2. Select **Docker** as the SDK.
 3. Push this repository to the Space.
-4. The app will build and run automatically.
+
+### 3. Model Options & Security
+
+- **Multi-Provider Support**: Added support for Hugging Face Inference API alongside Anthropic.
+- **Streaming**: Implemented streaming response support for both providers.
+- **Security**: Added `pre-commit-check.sh` hook to prevent API key leaks.
+- **Observability**: Added Prometheus metrics and health check endpoints.
