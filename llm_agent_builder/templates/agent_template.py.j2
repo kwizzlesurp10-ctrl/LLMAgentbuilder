@@ -147,6 +147,58 @@ class {{ agent_name }}:
         # For this implementation, we'll focus on text generation.
         return response.choices[0].message.content
         {% else %}
+        {% if stream %}
+        with self.client.messages.stream(
+            model=os.environ.get("ANTHROPIC_MODEL", "{{ model }}"),
+            max_tokens=2048,
+            system=self.prompt,
+            messages=[
+                {"role": "user", "content": task}
+            ]{% if tools or db_path %},
+            tools=self.tools{% endif %}
+        ) as stream:
+            full_response = ""
+            for text in stream.text_stream:
+                print(text, end="", flush=True)
+                full_response += text
+            print()
+            
+            final_message = stream.get_final_message()
+            
+            {% if tools or db_path %}
+            if final_message.stop_reason == "tool_use":
+                # Handle tool use in streaming mode
+                tool_uses = [block for block in final_message.content if block.type == "tool_use"]
+                tool_results = []
+                for tool_use in tool_uses:
+                    tool_result = self._execute_tool(tool_use.name, tool_use.input)
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": tool_use.id,
+                        "content": json.dumps(tool_result)
+                    })
+                
+                # Get final response after tool execution (streaming the follow-up)
+                with self.client.messages.stream(
+                    model=os.environ.get("ANTHROPIC_MODEL", "{{ model }}"),
+                    max_tokens=2048,
+                    system=self.prompt,
+                    messages=[
+                        {"role": "user", "content": task},
+                        {"role": "assistant", "content": final_message.content},
+                        {"role": "user", "content": tool_results}
+                    ],
+                    tools=self.tools
+                ) as follow_up_stream:
+                    for text in follow_up_stream.text_stream:
+                        print(text, end="", flush=True)
+                        full_response += text
+                    print()
+                    return full_response
+            {% endif %}
+            
+            return full_response
+        {% else %}
         response = self.client.messages.create(
             model=os.environ.get("ANTHROPIC_MODEL", "{{ model }}"),
             max_tokens=2048,
@@ -186,6 +238,7 @@ class {{ agent_name }}:
         {% endif %}
         
         return response.content[0].text
+        {% endif %}
         {% endif %}
 
 if __name__ == '__main__':
