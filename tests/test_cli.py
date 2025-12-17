@@ -81,14 +81,15 @@ def test_cli_batch_generate(temp_output_dir):
         config_file,
         "--output", temp_output_dir
     ], capture_output=True, text=True)
-    
+
     assert result.returncode == 0
     assert "BatchAgent1" in result.stdout
     assert "BatchAgent2" in result.stdout
-    
+
     # Verify files were created
     assert os.path.exists(os.path.join(temp_output_dir, "batchagent1.py"))
     assert os.path.exists(os.path.join(temp_output_dir, "batchagent2.py"))
+
 
 def test_cli_invalid_agent_name():
     result = subprocess.run([
@@ -97,6 +98,6 @@ def test_cli_invalid_agent_name():
         "--prompt", "Test",
         "--task", "Test"
     ], capture_output=True, text=True)
-    
+
     assert result.returncode != 0
     assert "Error" in result.stdout or "Error" in result.stderr
