@@ -173,8 +173,8 @@ async def test_agent(request: Request, test_request: TestAgentRequest):
                     status_code=400,
                     detail="agent_path must be provided"
                 )
-            # Validate path exists
-            agent_path = Path(test_request.agent_path)
+             # Validate path exists
+            agent_path = Path(str(test_request.agent_path))
             if not agent_path.exists():
                 raise HTTPException(
                     status_code=404,
@@ -206,7 +206,7 @@ async def health_check():
 frontend_dist = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "dist")
 index_html_path: Optional[str] = os.path.join(frontend_dist, "index.html") if os.path.exists(frontend_dist) else None
 
-if os.path.exists(frontend_dist) and index_html_path and os.path.exists(index_html_path):
+if os.path.exists(frontend_dist) and index_html_path and os.path.exists(str(index_html_path)):
     print(f"✓ Serving frontend from: {frontend_dist}")
     
     # Mount static assets (must be before catch-all route)
@@ -218,8 +218,8 @@ if os.path.exists(frontend_dist) and index_html_path and os.path.exists(index_ht
     @app.get("/")
     @app.get("/")
     async def serve_root():
-        if index_html_path and os.path.exists(index_html_path):
-             return FileResponse(index_html_path, media_type="text/html")
+        if index_html_path and os.path.exists(str(index_html_path)):
+             return FileResponse(str(index_html_path), media_type="text/html")
         raise HTTPException(status_code=404, detail="Index not found")
 
     # Catch-all route for React Router (must be last, excludes API routes)
@@ -236,8 +236,8 @@ if os.path.exists(frontend_dist) and index_html_path and os.path.exists(index_ht
             
         # Otherwise serve index.html for React Router
         # Otherwise serve index.html for React Router
-        if index_html_path and os.path.exists(index_html_path):
-            return FileResponse(index_html_path, media_type="text/html")
+        if index_html_path and os.path.exists(str(index_html_path)):
+            return FileResponse(str(index_html_path), media_type="text/html")
         raise HTTPException(status_code=404, detail="Index not found")
 else:
     # Fallback if frontend is not built

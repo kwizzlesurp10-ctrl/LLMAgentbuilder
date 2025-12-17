@@ -3,10 +3,16 @@ import tempfile
 import os
 import sys
 
+import types
+from typing import Optional
+
+resource: Optional[types.ModuleType] = None
+
 try:
-    import resource
+    import resource as _resource
+    resource = _resource
 except ImportError:
-    resource = None  # type: ignore[assignment]
+    pass
 
 
 def run_in_sandbox(code: str, task: str, timeout: int = 30, memory_limit_mb: int = 512) -> str:
