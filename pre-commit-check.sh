@@ -5,7 +5,7 @@
 KEYWORDS="ANTHROPIC_API_KEY HUGGINGFACEHUB_API_TOKEN sk-ant- hf_"
 
 # Check staged files
-FILES=$(git diff --cached --name-only)
+FILES=$(git diff --cached --name-only --diff-filter=ACM)
 
 if [ -z "$FILES" ]; then
     exit 0
