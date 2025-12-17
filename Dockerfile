@@ -50,6 +50,10 @@ COPY workflow_impl.py .
 # Copy frontend build from stage 1
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
+# Grant write permissions to /app for HF Spaces (runs as arbitrary user)
+# Critical for SQLite (workflow.db) and generated_agents directory
+RUN chmod -R 777 /app
+
 # Expose port 7860 (Hugging Face Spaces default)
 EXPOSE 7860
 

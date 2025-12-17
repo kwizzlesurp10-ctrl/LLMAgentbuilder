@@ -1,11 +1,13 @@
 from enum import Enum
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 from typing import Optional, Dict, Any, List
+
 
 class ProviderEnum(str, Enum):
     ANTHROPIC = "anthropic"
     HUGGINGFACE = "huggingface"
     OPENAI = "openai"
+
 
 class GenerateRequest(BaseModel):
     name: str
@@ -17,8 +19,9 @@ class GenerateRequest(BaseModel):
     db_path: Optional[str] = None
     version: Optional[str] = None  # Version identifier (auto-generated if None)
     parent_version: Optional[str] = None  # Parent version for branching
-    
-    @validator('name')
+
+    @field_validator('name')
+    @classmethod
     def validate_name(cls, v):
         if not v or not v.strip():
             raise ValueError("Agent name cannot be empty")
@@ -28,9 +31,10 @@ class GenerateRequest(BaseModel):
             raise ValueError("Agent name must start with a letter or underscore")
         return trimmed
 
-    @validator('model')
-    def validate_model(cls, v, values):
-        provider = values.get('provider')
+    @field_validator('model')
+    @classmethod
+    def validate_model(cls, v, info):
+        provider = info.data.get('provider')
         if provider == ProviderEnum.ANTHROPIC:
             allowed = [
                 "claude-3-5-sonnet-20241022",
@@ -59,12 +63,14 @@ class GenerateRequest(BaseModel):
                 raise ValueError(f"Model {v} not supported for OpenAI")
         return v
 
+
 class TestAgentRequest(BaseModel):
     """Request model for testing an agent."""
     agent_code: Optional[str] = None
     agent_path: Optional[str] = None
     task: str
     timeout: Optional[int] = 60
+
 
 class AgentVersion(BaseModel):
     """Model representing an agent version."""
@@ -80,12 +86,14 @@ class AgentVersion(BaseModel):
     created_at: str
     metadata: Optional[Dict[str, Any]] = {}
 
+
 class AgentVersionResponse(BaseModel):
     """Response model for agent version operations."""
     versions: List[AgentVersion]
     total: int
     page: int = 1
     page_size: int = 10
+
 
 class AgentExport(BaseModel):
     """Model for exporting agent configuration."""
@@ -99,6 +107,15 @@ class AgentExport(BaseModel):
     exported_at: str
     metadata: Optional[Dict[str, Any]] = {}
 
+
 class AgentImportRequest(BaseModel):
     """Request model for importing agent configuration."""
     config: AgentExport
+
+
+class EnhancePromptRequest(BaseModel):
+    """Request model for enhancing a system prompt."""
+    keyword: str
+    provider: ProviderEnum = ProviderEnum.ANTHROPIC
+    model: str
+
