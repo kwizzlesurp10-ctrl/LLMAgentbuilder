@@ -6,7 +6,7 @@ import sys
 try:
     import resource
 except ImportError:
-    resource = None
+    resource = None  # type: ignore[assignment]
 
 
 def run_in_sandbox(code: str, task: str, timeout: int = 30, memory_limit_mb: int = 512) -> str:

@@ -1,7 +1,7 @@
 import os
 import sys
 import time
-from typing import Dict
+from typing import Dict, Union, Optional
 from pathlib import Path
 import subprocess
 from fastapi import FastAPI, HTTPException, Request
@@ -166,8 +166,13 @@ async def test_agent(request: Request, test_request: TestAgentRequest):
         
         # Determine agent source
         if test_request.agent_code:
-            agent_source = test_request.agent_code
+            agent_source: Union[str, Path] = test_request.agent_code
         else:
+            if not test_request.agent_path:
+                 raise HTTPException(
+                    status_code=400,
+                    detail="agent_path must be provided"
+                )
             # Validate path exists
             agent_path = Path(test_request.agent_path)
             if not agent_path.exists():
@@ -199,9 +204,9 @@ async def health_check():
 # Mount the static files from the frontend build directory
 # We assume the frontend is built to 'frontend/dist'
 frontend_dist = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "dist")
-index_html_path = os.path.join(frontend_dist, "index.html") if os.path.exists(frontend_dist) else None
+index_html_path: Optional[str] = os.path.join(frontend_dist, "index.html") if os.path.exists(frontend_dist) else None
 
-if os.path.exists(frontend_dist) and os.path.exists(index_html_path):
+if os.path.exists(frontend_dist) and index_html_path and os.path.exists(index_html_path):
     print(f"✓ Serving frontend from: {frontend_dist}")
     
     # Mount static assets (must be before catch-all route)
@@ -211,8 +216,11 @@ if os.path.exists(frontend_dist) and os.path.exists(index_html_path):
     
     # Serve root
     @app.get("/")
+    @app.get("/")
     async def serve_root():
-        return FileResponse(index_html_path, media_type="text/html")
+        if index_html_path and os.path.exists(index_html_path):
+             return FileResponse(index_html_path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Index not found")
 
     # Catch-all route for React Router (must be last, excludes API routes)
     @app.get("/{full_path:path}")
@@ -227,7 +235,10 @@ if os.path.exists(frontend_dist) and os.path.exists(index_html_path):
             return FileResponse(file_path)
             
         # Otherwise serve index.html for React Router
-        return FileResponse(index_html_path, media_type="text/html")
+        # Otherwise serve index.html for React Router
+        if index_html_path and os.path.exists(index_html_path):
+            return FileResponse(index_html_path, media_type="text/html")
+        raise HTTPException(status_code=404, detail="Index not found")
 else:
     # Fallback if frontend is not built
     @app.get("/")
