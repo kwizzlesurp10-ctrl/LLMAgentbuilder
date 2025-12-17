@@ -111,3 +111,11 @@ class AgentExport(BaseModel):
 class AgentImportRequest(BaseModel):
     """Request model for importing agent configuration."""
     config: AgentExport
+
+
+class EnhancePromptRequest(BaseModel):
+    """Request model for enhancing a system prompt."""
+    keyword: str
+    provider: ProviderEnum = ProviderEnum.ANTHROPIC
+    model: str
+

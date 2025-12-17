@@ -10,6 +10,8 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
         stream: false
     });
     const [isExecuting, setIsExecuting] = useState(false);
+    const [enhanceLoading, setEnhanceLoading] = useState(false);
+    const [enhancementOptions, setEnhancementOptions] = useState(null);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -63,6 +65,34 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
             if (onTestResult) onTestResult(`Error: ${error.message}`);
         } finally {
             setIsExecuting(false);
+        }
+    };
+
+    const handleEnhance = async () => {
+        if (!formData.prompt) return;
+        setEnhanceLoading(true);
+        setEnhancementOptions(null);
+        try {
+            const apiUrl = import.meta.env.DEV ? 'http://localhost:8000/api/enhance-prompt' : '/api/enhance-prompt';
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    keyword: formData.prompt,
+                    provider: formData.provider,
+                    model: formData.model
+                }),
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                setEnhancementOptions(data.options);
+            } else {
+                alert(`Error: ${data.detail}`);
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+        } finally {
+            setEnhanceLoading(false);
         }
     };
 
@@ -131,16 +161,99 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="prompt">System Prompt</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <label htmlFor="prompt" style={{ margin: 0 }}>System Prompt</label>
+                        <button
+                            type="button"
+                            onClick={handleEnhance}
+                            disabled={enhanceLoading || !formData.prompt}
+                            style={{
+                                padding: '0.25rem 0.75rem',
+                                fontSize: '0.875rem',
+                                background: 'transparent',
+                                border: '1px solid var(--accent-primary)',
+                                color: 'var(--accent-primary)',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                opacity: enhanceLoading || !formData.prompt ? 0.5 : 1
+                            }}
+                        >
+                            {enhanceLoading ? 'Enhancing...' : '✨ Enhance'}
+                        </button>
+                    </div>
                     <textarea
                         id="prompt"
                         name="prompt"
                         value={formData.prompt}
                         onChange={handleChange}
-                        placeholder="You are a helpful AI assistant..."
+                        placeholder="You are a helpful AI assistant... (or enter a keyword)"
                         rows="4"
                         required
                     />
+                    {enhancementOptions && (
+                        <div style={{
+                            marginTop: '1rem',
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                            gap: '1rem'
+                        }}>
+                            {Object.entries(enhancementOptions).map(([key, option]) => (
+                                <div key={key} style={{
+                                    background: 'rgba(59, 130, 246, 0.1)',
+                                    border: '1px solid rgba(59, 130, 246, 0.2)',
+                                    borderRadius: '0.5rem',
+                                    padding: '1rem',
+                                    display: 'flex',
+                                    flexDirection: 'column'
+                                }}>
+                                    <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--accent-primary)' }}>Option {key}</h4>
+
+                                    <div style={{ marginBottom: '0.5rem' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#888', textTransform: 'uppercase' }}>System Prompt</div>
+                                        <p style={{ fontSize: '0.875rem', margin: '0.25rem 0 0.5rem', whiteSpace: 'pre-wrap', maxHeight: '100px', overflowY: 'auto' }}>
+                                            {typeof option === 'string' ? option : option.prompt}
+                                        </p>
+                                    </div>
+
+                                    {typeof option !== 'string' && option.task && (
+                                        <div style={{ marginBottom: '1rem' }}>
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#888', textTransform: 'uppercase' }}>Example Task</div>
+                                            <p style={{ fontSize: '0.875rem', margin: '0.25rem 0', whiteSpace: 'pre-wrap', maxHeight: '60px', overflowY: 'auto', fontStyle: 'italic' }}>
+                                                {option.task}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const newPrompt = typeof option === 'string' ? option : option.prompt;
+                                            const newTask = typeof option === 'string' ? '' : option.task;
+
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                prompt: newPrompt,
+                                                task: newTask || prev.task
+                                            }));
+                                            setEnhancementOptions(null);
+                                        }}
+                                        style={{
+                                            marginTop: 'auto',
+                                            width: '100%',
+                                            padding: '0.5rem',
+                                            background: 'var(--accent-primary)',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        Use Option {key}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div className="form-group">
