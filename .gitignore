@@ -137,4 +137,31 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
+# Project-specific files
+generated_agents/
+*.db
+*.log
+*_log.txt
+test_outputs/
+test_output*.txt
+curl_*.json
+mypy_*.txt
+output.txt
+task.md
+walkthrough.md
+implementation_plan.md
+workflow.db
+
+# Node/Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+node_modules/
+package-lock.json
+
+# macOS
+.DS_Store
+
+# Linux
+*~
 

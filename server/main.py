@@ -18,14 +18,27 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 # Add the parent directory to sys.path to import llm_agent_builder
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import sys
+# Force reload to ensure we get the local version
+if 'llm_agent_builder' in sys.modules:
+    del sys.modules['llm_agent_builder']
+if 'llm_agent_builder.agent_engine' in sys.modules:
+    del sys.modules['llm_agent_builder.agent_engine']
+
+print(f"DEBUG: sys.path: {sys.path}")
+try:
+    import llm_agent_builder
+    print(f"DEBUG: llm_agent_builder: {llm_agent_builder.__file__}")
+    import llm_agent_builder.agent_engine
+    print("DEBUG: agent_engine imported successfully")
+except Exception as e:
+    print(f"DEBUG: Import error: {e}")
+
 from llm_agent_builder.agent_builder import AgentBuilder
 from llm_agent_builder.agent_engine import AgentEngine
-from server.models import GenerateRequest, ProviderEnum, TestAgentRequest, EnhancePromptRequest
+from server.models import GenerateRequest, ProviderEnum, TestAgentRequest
 from server.sandbox import run_in_sandbox
 from prometheus_fastapi_instrumentator import Instrumentator
-import anthropic
-from huggingface_hub import InferenceClient
-
 
 app = FastAPI(title="LLM Agent Builder API", version="1.0.0")
 
@@ -177,129 +190,6 @@ async def test_agent(request: Request, test_request: TestAgentRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Test execution error: {str(e)}")
 
-
-@app.post("/api/enhance-prompt")
-@limiter.limit("10/minute")
-async def enhance_prompt(request: Request, enhance_request: EnhancePromptRequest):
-    """
-    Enhance a keyword into 3 distinct system prompts using the selected provider.
-    """
-    try:
-        # Construct the meta-prompt
-        meta_prompt = (
-            f"You are an expert prompt engineer. Create 3 distinct, high-quality system prompts based on the keyword or phrase: '{enhance_request.keyword}'.\n"
-            "For each option (A, B, C), provide TWO things:\n"
-            "1. **System Prompt**: The system instructions for the agent.\n"
-            "2. **Example Task**: A relevant, concrete example task that this agent handles well.\n\n"
-            "Format the output strictly as follows:\n"
-            "Option A)\n"
-            "System Prompt: [Content]\n"
-            "Task: [Content]\n\n"
-            "Option B)\n"
-            "System Prompt: [Content]\n"
-            "Task: [Content]\n\n"
-            "Option C)\n"
-            "System Prompt: [Content]\n"
-            "Task: [Content]\n\n"
-            "Ensure the prompts are robust and actionable."
-        )
-
-        response_text = ""
-
-        if enhance_request.provider == ProviderEnum.ANTHROPIC:
-            api_key = os.environ.get("ANTHROPIC_API_KEY")
-            if not api_key:
-                raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
-            
-            client = anthropic.Anthropic(api_key=api_key)
-            # Use the requested model or default to a known good one if not provided
-            model = enhance_request.model or "claude-3-5-sonnet-20241022"
-            
-            message = client.messages.create(
-                model=model,
-                max_tokens=2048,
-                system="You are an expert prompt engineer.",
-                messages=[
-                    {"role": "user", "content": meta_prompt}
-                ]
-            )
-            response_text = message.content[0].text
-
-        elif enhance_request.provider == ProviderEnum.HUGGINGFACE:
-            api_key = os.environ.get("HUGGINGFACEHUB_API_TOKEN")
-            if not api_key:
-                raise HTTPException(status_code=500, detail="HUGGINGFACEHUB_API_TOKEN not configured")
-            
-            client = InferenceClient(token=api_key)
-            model = enhance_request.model or "meta-llama/Meta-Llama-3-8B-Instruct"
-            
-            messages = [
-                {"role": "system", "content": "You are an expert prompt engineer."},
-                {"role": "user", "content": meta_prompt}
-            ]
-            
-            response = client.chat_completion(
-                model=model,
-                messages=messages,
-                max_tokens=2048,
-                stream=False
-            )
-            response_text = response.choices[0].message.content
-        
-        else:
-            raise HTTPException(status_code=400, detail=f"Provider {enhance_request.provider} not supported for enhancement")
-
-        # Parser
-        options = {}
-        
-        def parse_single_option(text_block):
-            try:
-                # Find "System Prompt:" start
-                sp_start = text_block.find("System Prompt:")
-                if sp_start == -1: return None
-                
-                # Find "Task:" start
-                task_start = text_block.find("Task:")
-                if task_start == -1: return None
-                
-                # Extract System Prompt (from after label to before Task:)
-                system_prompt = text_block[sp_start + len("System Prompt:"):task_start].strip()
-                
-                # Extract Task (from after label to end)
-                task = text_block[task_start + len("Task:"):].strip()
-                
-                return {"prompt": system_prompt, "task": task}
-            except Exception:
-                return None
-
-        # Naive split by "Option X)"
-        # We try to unify delimiters
-        cleaned_response = response_text.replace("Option A)", "###SPLIT###").replace("Option B)", "###SPLIT###").replace("Option C)", "###SPLIT###")
-        parts = cleaned_response.split("###SPLIT###")
-        
-        # parts[0] is preamble. parts[1] => A, parts[2] => B, parts[3] => C
-        keys = ["A", "B", "C"]
-        current_key_idx = 0
-        
-        for part in parts:
-            if not part.strip(): continue # skip empty preamble
-            if current_key_idx >= 3: break
-            
-            parsed = parse_single_option(part)
-            if parsed:
-                options[keys[current_key_idx]] = parsed
-            else:
-                # Fallback if parsing fails? Return raw text as prompt, generic task
-                options[keys[current_key_idx]] = {"prompt": part.strip(), "task": "(Could not parse task)"}
-                
-            current_key_idx += 1
-            
-        return {"status": "success", "options": options, "raw": response_text}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Enhancement error: {str(e)}")
-
-
 @app.get("/health")
 @app.get("/healthz")
 async def health_check():
@@ -330,12 +220,12 @@ if os.path.exists(frontend_dist) and os.path.exists(index_html_path):
         # Skip API routes and other special paths - let FastAPI handle these
         if full_path.startswith(("api/", "docs", "redoc", "openapi.json", "metrics", "health")):
             raise HTTPException(status_code=404, detail="Not found")
-
+        
         # If the path is a file in dist, serve it (e.g. vite.svg, favicon.ico)
         file_path = os.path.join(frontend_dist, full_path)
         if os.path.exists(file_path) and os.path.isfile(file_path):
             return FileResponse(file_path)
-
+            
         # Otherwise serve index.html for React Router
         return FileResponse(index_html_path, media_type="text/html")
 else:
@@ -354,4 +244,4 @@ else:
         }
     print(f"⚠ Warning: Frontend build directory not found at {frontend_dist}")
     print(f"   Expected path: {frontend_dist}")
-    print("   Serving API only. Access API docs at /docs")
+    print(f"   Serving API only. Access API docs at /docs")
