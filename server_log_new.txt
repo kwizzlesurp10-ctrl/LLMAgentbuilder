@@ -122,3 +122,11 @@ INFO:     Finished server process [164922]
 INFO:     Started server process [166599]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'generated_agents/previewagent.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [166599]
+INFO:     Started server process [166982]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
