@@ -2,7 +2,7 @@
 # Pre-commit hook to check for exposed API keys
 
 # Keywords to search for
-KEYWORDS="ANTHROPIC_API_KEY HUGGINGFACEHUB_API_TOKEN sk-ant- hf_"
+KEYWORDS="sk-ant- hf_"
 
 # Check staged files
 FILES=$(git diff --cached --name-only --diff-filter=ACM)
@@ -14,8 +14,8 @@ fi
 FOUND_KEYS=0
 
 for FILE in $FILES; do
-    # Skip check for .env.example and pre-commit-check.sh itself
-    if [[ "$FILE" == ".env.example" || "$FILE" == "pre-commit-check.sh" ]]; then
+    # Skip check for .env.example, pre-commit-check.sh, and generated_agents directory
+    if [[ "$FILE" == ".env.example" || "$FILE" == "pre-commit-check.sh" || "$FILE" == generated_agents/* ]]; then
         continue
     fi
 

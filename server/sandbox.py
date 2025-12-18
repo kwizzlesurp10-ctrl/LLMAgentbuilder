@@ -4,9 +4,9 @@ import os
 import sys
 
 import types
-from typing import Optional
+from typing import Optional, Any
 
-resource: Optional[types.ModuleType] = None
+resource: Any = None
 
 try:
     import resource as _resource
