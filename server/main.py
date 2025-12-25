@@ -152,8 +152,6 @@ async def test_agent(request: Request, test_request: TestAgentRequest):
             if not agent_path.exists():
                 raise HTTPException(status_code=404, detail=f"Agent file not found: {test_request.agent_path}")
             agent_source = str(agent_path)
-        else:
-            raise HTTPException(status_code=400, detail="Either agent_code or agent_path must be provided")
 
         # Execute agent
         result = engine.execute_with_timeout(agent_source, test_request.task)
