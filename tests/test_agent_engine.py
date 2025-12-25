@@ -1,25 +1,24 @@
 import os
 import sys
 import unittest
-import tempfile
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from llm_agent_builder.agent_engine import AgentEngine, ExecutionStatus
 
+
 class TestAgentEngine(unittest.TestCase):
     def setUp(self):
         self.engine = AgentEngine(api_key="dummy_key")
-        
+
     def test_load_agent_from_code(self):
         code = """
 class TestAgent:
     def __init__(self, api_key=None):
         self.api_key = api_key
-    
+
     def run(self, task):
         return f"Executed: {task}"
 """
@@ -33,7 +32,7 @@ class TestAgent:
 class TestAgent:
     def __init__(self, api_key=None):
         pass
-    
+
     def run(self, task):
         return f"Echo: {task}"
 """
@@ -45,7 +44,7 @@ class TestAgent:
         # This test requires the code to be runnable in a subprocess
         # We need to ensure the subprocess can import the agent
         # Since we are passing code string, AgentEngine creates a temp file
-        
+
         code = """
 import time
 import sys
@@ -54,7 +53,7 @@ import argparse
 class TestAgent:
     def __init__(self, api_key=None):
         pass
-    
+
     def run(self, task):
         return f"Subprocess: {task}"
 
@@ -62,7 +61,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", required=True)
     args = parser.parse_args()
-    
+
     agent = TestAgent()
     print(agent.run(args.task))
 """
@@ -89,6 +88,7 @@ if __name__ == "__main__":
         with patch.dict(os.environ, {}, clear=True):
             result = engine.execute("code", "task")
             self.assertEqual(result.status, ExecutionStatus.API_KEY_MISSING)
+
 
 if __name__ == "__main__":
     unittest.main()
