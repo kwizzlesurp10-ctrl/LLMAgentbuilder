@@ -1,6 +1,8 @@
 import os
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
 from jinja2 import Environment, FileSystemLoader
+
 
 class AgentBuilder:
     def __init__(self, template_path: Optional[str] = None):
@@ -16,16 +18,16 @@ class AgentBuilder:
             self.template = self.env.get_template('agent_template.py.j2')
 
     def build_agent(
-        self, 
-        agent_name: str, 
-        prompt: str, 
-        example_task: str, 
-        model: str = "claude-3-5-sonnet-20241022", 
-        provider: str = "anthropic", 
+        self,
+        agent_name: str,
+        prompt: str,
+        example_task: str,
+        model: str = "claude-3-5-sonnet-20241022",
+        provider: str = "anthropic",
         stream: bool = False,
         tools: Optional[List[Dict[str, Any]]] = None,
         enable_multi_step: bool = False,
-        db_path: Optional[str] = None
+        db_path: Optional[str] = None,
     ) -> str:
         """
         Generates the Python code for a new agent.
@@ -41,16 +43,16 @@ class AgentBuilder:
         :param db_path: Optional path to a SQLite database.
         :return: The generated Python code as a string.
         """
-        
+
         if provider == "huggingface":
             template_name = "agent_template_hf.py.j2"
         elif provider == "openai":
             template_name = "agent_template_openai.py.j2"
         else:
             template_name = "agent_template.py.j2"
-            
+
         template = self.env.get_template(template_name)
-        
+
         return template.render(
             agent_name=agent_name,
             prompt=prompt,
@@ -60,5 +62,5 @@ class AgentBuilder:
             stream=stream,
             tools=tools or [],
             enable_multi_step=enable_multi_step,
-            db_path=db_path
+            db_path=db_path,
         )
