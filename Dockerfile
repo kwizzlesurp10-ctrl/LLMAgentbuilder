@@ -2,7 +2,7 @@
 FROM node:22-alpine as frontend-build
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
@@ -43,10 +43,9 @@ COPY llm_agent_builder/ ./llm_agent_builder/
 COPY server/ ./server/
 COPY main.py .
 
-# Copy optional workflow files (if present in repository)
-# Note: These files may not exist in all deployments
-RUN touch workflow_impl.py workflow.db 2>/dev/null || true
-COPY workflow_impl.py* workflow.db* ./ 2>/dev/null || true
+# Copy optional workflow files (comment out if not present)
+COPY workflow_impl.py ./
+COPY workflow.db ./
 
 # Copy frontend build from stage 1
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
