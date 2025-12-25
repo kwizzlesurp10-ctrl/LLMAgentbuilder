@@ -10,7 +10,7 @@
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=github&config=eyJ1cmwiOiJodHRwczovL2FwaS5naXRodWJjb3BpbG90LmNvbS9tY3AvIiwiaGVhZGVycyI6eyJBdXRob3JpemF0aW9uIjoiQmVhcmVyIFlPVVJfR0lUSFVCX1BBVCJ9fQ%3D%3D)
 
-Uses GitHub's hosted server at https://api.githubcopilot.com/mcp/. Requires Cursor v0.48.0+ for Streamable HTTP support. While Cursor supports OAuth for some MCP servers, the GitHub server currently requires a Personal Access Token.
+Uses GitHub's hosted server at <https://api.githubcopilot.com/mcp/>. Requires Cursor v0.48.0+ for Streamable HTTP support. While Cursor supports OAuth for some MCP servers, the GitHub server currently requires a Personal Access Token.
 
 ### Install steps
 
@@ -35,13 +35,13 @@ Uses GitHub's hosted server at https://api.githubcopilot.com/mcp/. Requires Curs
 }
 ```
 
-## Local Server Setup
+## Local Server Setup (Docker)
 
 [![Install MCP Server](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=github&config=eyJjb21tYW5kIjoiZG9ja2VyIHJ1biAtaSAtLXJtIC1lIEdJVEhVQl9QRVJTT05BTF9BQ0NFU1NfVE9LRU4gZ2hjci5pby9naXRodWIvZ2l0aHViLW1jcC1zZXJ2ZXIiLCJlbnYiOnsiR0lUSFVCX1BFUlNPTkFMX0FDQ0VTU19UT0tFTiI6IllPVVJfR0lUSFVCX1BBVCJ9fQ%3D%3D)
 
 The local GitHub MCP server runs via Docker and requires Docker Desktop to be installed and running.
 
-### Install steps
+### Docker Install Steps
 
 1. Click the install button above and follow the flow, or go directly to your global MCP configuration file at `~/.cursor/mcp.json` and enter the code block below
 2. In Tools & Integrations > MCP tools, click the pencil icon next to "github"
@@ -112,4 +112,3 @@ The local GitHub MCP server runs via Docker and requires Docker Desktop to be in
 - **Docker image**: `ghcr.io/github/github-mcp-server` (official and supported)
 - **npm package**: `@modelcontextprotocol/server-github` (deprecated as of April 2025 - no longer functional)
 - **Cursor specifics**: Supports both project and global configurations, uses `mcpServers` key
-
