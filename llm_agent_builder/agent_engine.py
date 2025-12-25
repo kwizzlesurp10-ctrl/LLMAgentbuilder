@@ -8,11 +8,19 @@ designed for testing agents on HuggingFace Spaces and other server environments.
 import os
 import sys
 import importlib.util
-import tempfile
 from pathlib import Path
 from typing import Optional, Dict, Any, Union
 from dataclasses import dataclass
 from enum import Enum
+
+from llm_agent_builder.utils import (
+    get_api_key,
+    is_copilot_token,
+    temporary_python_file,
+    is_agent_file_path,
+    build_agent_command,
+    API_KEY_MISSING_ERROR
+)
 
 # Import GitHub Copilot client if available
 try:
@@ -73,21 +81,7 @@ class AgentEngine:
         """
         self.timeout = timeout
         self.memory_limit_mb = memory_limit_mb
-        self.api_key = api_key or self._get_api_key()
-    
-    def _get_api_key(self) -> Optional[str]:
-        """Get API key from environment variables."""
-        return (
-            os.environ.get("ANTHROPIC_API_KEY") or 
-            os.environ.get("HUGGINGFACEHUB_API_TOKEN") or
-            os.environ.get("GITHUB_COPILOT_TOKEN")
-        )
-    
-    def _is_copilot_token(self, token: Optional[str]) -> bool:
-        """Check if token is a GitHub Copilot bearer token."""
-        if not token:
-            return False
-        return any(token.startswith(prefix) for prefix in ["ghp_", "github_pat_", "mock-copilot-"])
+        self.api_key = api_key or get_api_key()
     
     def _get_copilot_client(self) -> Optional[Any]:
         """Get GitHub Copilot client if available and token is present."""
@@ -95,7 +89,7 @@ class AgentEngine:
             return None
         
         token = self.api_key
-        if token and self._is_copilot_token(token):
+        if token and is_copilot_token(token):
             try:
                 return CopilotClient(bearer_token=token)
             except Exception:
@@ -152,17 +146,25 @@ class AgentEngine:
         :param code: Python code string containing the agent class
         :return: Agent class
         """
-        # Create a temporary file and load from it
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as temp_file:
-            temp_file.write(code)
-            temp_file_path = temp_file.name
-        
-        try:
+        with temporary_python_file(code) as temp_file_path:
             return self._load_agent_from_file(temp_file_path)
-        finally:
-            # Clean up temp file
-            if os.path.exists(temp_file_path):
-                os.remove(temp_file_path)
+    
+    def _detect_agent_source(self, agent_source: Union[str, Path]) -> tuple[bool, Union[str, Path]]:
+        """
+        Detect whether agent_source is a file path or code string.
+        
+        :param agent_source: Path to agent file or code string
+        :return: Tuple of (is_file, normalized_source)
+        """
+        is_file = is_agent_file_path(agent_source)
+        
+        if is_file:
+            agent_path = Path(agent_source)
+            if not agent_path.exists():
+                raise FileNotFoundError(f"Agent file not found: {agent_source}")
+            return True, agent_path
+        else:
+            return False, str(agent_source)
     
     def execute(
         self,
@@ -187,7 +189,7 @@ class AgentEngine:
                 return ExecutionResult(
                     status=ExecutionStatus.API_KEY_MISSING,
                     output="",
-                    error="API key not found. Set ANTHROPIC_API_KEY, HUGGINGFACEHUB_API_TOKEN, or GITHUB_COPILOT_TOKEN",
+                    error=API_KEY_MISSING_ERROR,
                     execution_time=time.time() - start_time
                 )
             
@@ -197,29 +199,21 @@ class AgentEngine:
                 # Use GitHub Copilot API for execution
                 return self._execute_with_copilot(agent_source, task, copilot_client, start_time)
             
-            # Determine if source is file or code
-            is_file = False
-            if isinstance(agent_source, Path):
-                is_file = True
-            elif isinstance(agent_source, str):
-                if '\n' in agent_source:
-                    is_file = False
-                elif os.path.exists(agent_source) or agent_source.endswith('.py'):
-                    is_file = True
+            # Detect agent source type
+            try:
+                is_file, normalized_source = self._detect_agent_source(agent_source)
+            except FileNotFoundError as e:
+                return ExecutionResult(
+                    status=ExecutionStatus.AGENT_NOT_FOUND,
+                    output="",
+                    error=str(e),
+                    execution_time=time.time() - start_time
+                )
             
             if is_file:
-                agent_path = Path(agent_source)
-                if not agent_path.exists():
-                    return ExecutionResult(
-                        status=ExecutionStatus.AGENT_NOT_FOUND,
-                        output="",
-                        error=f"Agent file not found: {agent_source}",
-                        execution_time=time.time() - start_time
-                    )
-                agent_class = self._load_agent_from_file(agent_path)
+                agent_class = self._load_agent_from_file(normalized_source)
             else:
-                # Assume it's code string
-                agent_class = self._load_agent_from_code(str(agent_source))
+                agent_class = self._load_agent_from_code(normalized_source)
             
             # Instantiate agent
             agent = agent_class(api_key=self.api_key)
@@ -271,10 +265,10 @@ class AgentEngine:
         """
         import subprocess
         import time
-        import tempfile
         
         start_time = time.time()
         temp_file_created = False
+        agent_file = None
         
         try:
             # Check API key
@@ -282,7 +276,7 @@ class AgentEngine:
                 return ExecutionResult(
                     status=ExecutionStatus.API_KEY_MISSING,
                     output="",
-                    error="API key not found. Set ANTHROPIC_API_KEY, HUGGINGFACEHUB_API_TOKEN, or GITHUB_COPILOT_TOKEN",
+                    error=API_KEY_MISSING_ERROR,
                     execution_time=time.time() - start_time
                 )
             
@@ -292,35 +286,65 @@ class AgentEngine:
                 # Use GitHub Copilot API for execution
                 return self._execute_with_copilot(agent_source, task, copilot_client, start_time)
             
-            # Determine if source is file or code
-            is_file = False
-            if isinstance(agent_source, Path):
-                is_file = True
-            elif isinstance(agent_source, str):
-                if '\n' in agent_source:
-                    is_file = False
-                elif os.path.exists(agent_source) or agent_source.endswith('.py'):
-                    is_file = True
+            # Detect agent source type
+            try:
+                is_file, normalized_source = self._detect_agent_source(agent_source)
+            except FileNotFoundError as e:
+                return ExecutionResult(
+                    status=ExecutionStatus.AGENT_NOT_FOUND,
+                    output="",
+                    error=str(e),
+                    execution_time=time.time() - start_time
+                )
             
             if is_file:
-                agent_path = Path(agent_source)
-                if not agent_path.exists():
-                    return ExecutionResult(
-                        status=ExecutionStatus.AGENT_NOT_FOUND,
-                        output="",
-                        error=f"Agent file not found: {agent_source}",
-                        execution_time=time.time() - start_time
-                    )
-                agent_file = str(agent_path.absolute())
+                agent_file = str(normalized_source.absolute())
             else:
                 # Create temporary file from code string
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as temp_file:
-                    temp_file.write(str(agent_source))
-                    agent_file = temp_file.name
+                with temporary_python_file(str(normalized_source)) as temp_path:
+                    agent_file = temp_path
                     temp_file_created = True
+                    
+                    # Execute via subprocess with timeout
+                    cmd = build_agent_command(agent_file, task)
+                    
+                    try:
+                        result = subprocess.run(
+                            cmd,
+                            capture_output=True,
+                            text=True,
+                            timeout=self.timeout,
+                            env={**os.environ, **self._get_env_with_api_key()}
+                        )
+                        
+                        output = result.stdout
+                        if result.stderr:
+                            output += f"\\n[stderr]\\n{result.stderr}"
+                        
+                        if result.returncode == 0:
+                            return ExecutionResult(
+                                status=ExecutionStatus.SUCCESS,
+                                output=output,
+                                execution_time=time.time() - start_time
+                            )
+                        else:
+                            return ExecutionResult(
+                                status=ExecutionStatus.ERROR,
+                                output=output,
+                                error=f"Agent exited with code {result.returncode}",
+                                execution_time=time.time() - start_time
+                            )
+                            
+                    except subprocess.TimeoutExpired:
+                        return ExecutionResult(
+                            status=ExecutionStatus.TIMEOUT,
+                            output="",
+                            error=f"Execution timed out after {self.timeout} seconds",
+                            execution_time=time.time() - start_time
+                        )
             
-            # Execute via subprocess with timeout
-            cmd = [sys.executable, agent_file, "--task", task]
+            # For file-based execution (not code string)
+            cmd = build_agent_command(agent_file, task)
             
             try:
                 result = subprocess.run(
@@ -356,10 +380,6 @@ class AgentEngine:
                     error=f"Execution timed out after {self.timeout} seconds",
                     execution_time=time.time() - start_time
                 )
-            finally:
-                # Clean up temp file if we created it
-                if temp_file_created and os.path.exists(agent_file):
-                    os.remove(agent_file)
                         
         except Exception as e:
             return ExecutionResult(
@@ -413,7 +433,7 @@ class AgentEngine:
         env = {}
         if self.api_key:
             # Determine which key to set based on what's available
-            if self._is_copilot_token(self.api_key):
+            if is_copilot_token(self.api_key):
                 env["GITHUB_COPILOT_TOKEN"] = self.api_key
             elif os.environ.get("ANTHROPIC_API_KEY"):
                 env["ANTHROPIC_API_KEY"] = self.api_key

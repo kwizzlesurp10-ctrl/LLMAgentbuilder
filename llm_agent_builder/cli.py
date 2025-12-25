@@ -15,6 +15,7 @@ if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
 from llm_agent_builder.agent_builder import AgentBuilder
+from llm_agent_builder.utils import get_api_key, build_agent_command
 from dotenv import load_dotenv
 
 def get_input(prompt: str, default: str, validator=None) -> str:
@@ -63,9 +64,9 @@ def test_agent(agent_path: str, task: Optional[str] = None) -> None:
         print(f"Error: Agent file '{agent_path}' not found.")
         sys.exit(1)
     
-    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
+    api_key = get_api_key()
     if not api_key:
-        print("Error: API key not found. Please set ANTHROPIC_API_KEY or HUGGINGFACEHUB_API_TOKEN.")
+        print("Error: API key not found. Please set ANTHROPIC_API_KEY, HUGGINGFACEHUB_API_TOKEN, or GITHUB_COPILOT_TOKEN.")
         sys.exit(1)
     
     if not task:
@@ -75,7 +76,7 @@ def test_agent(agent_path: str, task: Optional[str] = None) -> None:
             sys.exit(1)
     
     try:
-        cmd = [sys.executable, str(agent_file), "--task", task]
+        cmd = build_agent_command(str(agent_file), task)
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
         
         if result.returncode == 0:
