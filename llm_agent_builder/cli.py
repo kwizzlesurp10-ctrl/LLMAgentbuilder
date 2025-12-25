@@ -63,9 +63,9 @@ def test_agent(agent_path: str, task: Optional[str] = None) -> None:
         print(f"Error: Agent file '{agent_path}' not found.")
         sys.exit(1)
     
-    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
+    api_key = os.environ.get("GOOGLE_GEMINI_KEY") or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
     if not api_key:
-        print("Error: API key not found. Please set ANTHROPIC_API_KEY or HUGGINGFACEHUB_API_TOKEN.")
+        print("Error: API key not found. Please set GOOGLE_GEMINI_KEY or HUGGINGFACEHUB_API_TOKEN.")
         sys.exit(1)
     
     if not task:
@@ -124,8 +124,8 @@ def batch_generate(config_file: str, output_dir: str = "generated_agents", templ
                 agent_name = config.get("name", f"Agent{i}")
                 prompt = config.get("prompt", "")
                 task = config.get("task", "")
-                model = config.get("model", "claude-3-5-sonnet-20241022")
-                provider = config.get("provider", "anthropic")
+                model = config.get("model", "gemini-1.5-pro")
+                provider = config.get("provider", "google")
                 
                 if not prompt or not task:
                     print(f"  [{i}] Skipping '{agent_name}': missing prompt or task")
@@ -190,7 +190,7 @@ Examples:
     gen_parser.add_argument("--task", default="Write a Python function that calculates the factorial of a number.", help="Example task for the agent")
     gen_parser.add_argument("--output", default="generated_agents", help="Output directory for the generated agent")
     gen_parser.add_argument("--model", help="Model to use (overrides .env)")
-    gen_parser.add_argument("--provider", default="anthropic", choices=["anthropic", "huggingface"], help="LLM Provider to use")
+    gen_parser.add_argument("--provider", default="google", choices=["google", "huggingface"], help="LLM Provider to use")
     gen_parser.add_argument("--template", help="Path to a custom Jinja2 template file")
     gen_parser.add_argument("--interactive", action="store_true", help="Run in interactive mode")
     gen_parser.add_argument("--db-path", help="Path to a SQLite database for the agent to use")
@@ -242,15 +242,15 @@ Examples:
                 prompt = get_input("System Prompt", args.prompt)
                 task = get_input("Example Task", args.task)
                 output = get_input("Output Directory", args.output)
-                default_model = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
+                default_model = os.environ.get("GOOGLE_GEMINI_MODEL", "gemini-1.5-pro")
                 model = get_input("Model", default_model)
-                provider = get_input("Provider (anthropic/huggingface)", args.provider)
+                provider = get_input("Provider (google/huggingface)", args.provider)
                 template = get_input("Custom Template Path (optional)", "")
                 db_path = get_input("SQLite Database Path (optional)", "")
                 
                 # Validate provider
-                if provider not in ["anthropic", "huggingface"]:
-                    print(f"Error: Invalid provider '{provider}'. Must be 'anthropic' or 'huggingface'.")
+                if provider not in ["google", "huggingface"]:
+                    print(f"Error: Invalid provider '{provider}'. Must be 'google' or 'huggingface'.")
                     sys.exit(1)
             else:
                 name = args.name
@@ -269,15 +269,15 @@ Examples:
                 print(f"Error: {e}")
                 sys.exit(1)
             
-            # Override ANTHROPIC_MODEL if provided
+            # Override GOOGLE_GEMINI_MODEL if provided
             if model:
-                os.environ["ANTHROPIC_MODEL"] = model
+                os.environ["GOOGLE_GEMINI_MODEL"] = model
             
             # Create an instance of the AgentBuilder
             builder = AgentBuilder(template_path=template)
             
             # Generate the agent code
-            default_model = model or ("claude-3-5-sonnet-20241022" if provider == "anthropic" else "meta-llama/Meta-Llama-3-8B-Instruct")
+            default_model = model or ("gemini-1.5-pro" if provider == "google" else "meta-llama/Meta-Llama-3-8B-Instruct")
             agent_code = builder.build_agent(
                 agent_name=name, 
                 prompt=prompt, 
@@ -296,7 +296,7 @@ Examples:
                 f.write(agent_code)
             
             print(f"\n✓ Agent '{name}' has been created and saved to '{output_path}'")
-            print("To use the agent, you need to set the ANTHROPIC_API_KEY environment variable.")
+            print("To use the agent, you need to set the GOOGLE_GEMINI_KEY environment variable.")
             
         elif args.command == "list":
             list_agents(args.output)

@@ -64,8 +64,8 @@ LLM Agent Builder is a comprehensive Python application that enables developers 
    Create a `.env` file:
 
    ```bash
-   # For Anthropic
-   ANTHROPIC_API_KEY="your-anthropic-api-key-here"
+   # For Google Gemini
+   GOOGLE_GEMINI_KEY="your-google-gemini-api-key-here"
    ANTHROPIC_MODEL="claude-3-5-sonnet-20241022"
 
    # For Hugging Face (optional)
@@ -328,7 +328,7 @@ Build and run locally:
 
 ```bash
 docker build -t llm-agent-builder .
-docker run -p 8000:8000 -e ANTHROPIC_API_KEY=your-key llm-agent-builder
+docker run -p 8000:8000 -e GOOGLE_GEMINI_KEY=your-key llm-agent-builder
 ```
 
 ## 📊 Supported Models
@@ -393,9 +393,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ### Common Issues
 
-**Issue**: `ANTHROPIC_API_KEY not found`
+**Issue**: `GOOGLE_GEMINI_KEY not found`
 
-- **Solution**: Ensure your `.env` file is in the project root and contains `ANTHROPIC_API_KEY=your-key`
+- **Solution**: Ensure your `.env` file is in the project root and contains `GOOGLE_GEMINI_KEY=your-key`
 
 **Issue**: Frontend build fails
 

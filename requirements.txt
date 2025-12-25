@@ -1,4 +1,4 @@
-anthropic
+google-generativeai
 Jinja2
 python-dotenv
 fastapi

@@ -44,7 +44,7 @@ We take the security of LLM Agent Builder seriously. If you believe you have fou
 1. **API Keys**: Never commit API keys to version control
    ```bash
    # Always use environment variables
-   export ANTHROPIC_API_KEY=your-key-here
+   export GOOGLE_GEMINI_KEY=your-key-here
    ```
 
 2. **Environment Files**: Keep `.env` files out of git

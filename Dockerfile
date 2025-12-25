@@ -26,7 +26,7 @@ WORKDIR /app
 # Ensure git, ca-certificates, and utilities are explicitly available in final stage
 # Critical for Hugging Face Spaces dev-mode which wraps this stage
 # HF Spaces runs git config commands in wrapped stages, so git must be present
-# ca-certificates needed for HTTPS API calls (Anthropic, Hugging Face Hub)
+# ca-certificates needed for HTTPS API calls (Google Gemini, Hugging Face Hub)
 # wget and tar needed for injected vscode stage in dev-mode
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \

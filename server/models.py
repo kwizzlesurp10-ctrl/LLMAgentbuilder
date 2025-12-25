@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any, List
 
 
 class ProviderEnum(str, Enum):
-    ANTHROPIC = "anthropic"
+    GOOGLE = "google"
     HUGGINGFACE = "huggingface"
     OPENAI = "openai"
 
@@ -13,7 +13,7 @@ class GenerateRequest(BaseModel):
     name: str
     prompt: str
     task: str
-    provider: ProviderEnum = ProviderEnum.ANTHROPIC
+    provider: ProviderEnum = ProviderEnum.GOOGLE
     model: str
     stream: bool = False
     db_path: Optional[str] = None
@@ -35,15 +35,15 @@ class GenerateRequest(BaseModel):
     @classmethod
     def validate_model(cls, v, info):
         provider = info.data.get('provider')
-        if provider == ProviderEnum.ANTHROPIC:
+        if provider == ProviderEnum.GOOGLE:
             allowed = [
-                "claude-3-5-sonnet-20241022",
-                "claude-3-opus-20240229",
-                "claude-3-haiku-20240307",
-                "claude-3-5-haiku-20241022"
+                "gemini-1.5-pro",
+                "gemini-1.5-flash",
+                "gemini-pro",
+                "gemini-1.0-pro"
             ]
             if v not in allowed:
-                raise ValueError(f"Model {v} not supported for Anthropic")
+                raise ValueError(f"Model {v} not supported for Google Gemini")
         elif provider == ProviderEnum.HUGGINGFACE:
             allowed = [
                 "meta-llama/Meta-Llama-3-8B-Instruct",
@@ -116,6 +116,6 @@ class AgentImportRequest(BaseModel):
 class EnhancePromptRequest(BaseModel):
     """Request model for enhancing a system prompt."""
     keyword: str
-    provider: ProviderEnum = ProviderEnum.ANTHROPIC
+    provider: ProviderEnum = ProviderEnum.GOOGLE
     model: str
 

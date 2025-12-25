@@ -29,7 +29,7 @@ This document compares the PR branch (`pr/1`) from the Hugging Face Space reposi
 **PR Branch:**
 - Has `.env.example` file with:
   ```env
-  ANTHROPIC_API_KEY=your_anthropic_api_key_here
+  GOOGLE_GEMINI_KEY=your_google_gemini_key_here
   HUGGINGFACEHUB_API_TOKEN=your_huggingface_token_here
   ```
 

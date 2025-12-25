@@ -5,8 +5,8 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
         name: '',
         prompt: '',
         task: '',
-        provider: 'anthropic',
-        model: 'claude-3-5-sonnet-20241022',
+        provider: 'google',
+        model: 'gemini-1.5-pro',
         stream: false
     });
     const [isExecuting, setIsExecuting] = useState(false);
@@ -23,8 +23,8 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
 
             // Reset model when provider changes
             if (name === 'provider' && value !== prev.provider) {
-                if (value === 'anthropic') {
-                    newData.model = 'claude-3-5-sonnet-20241022';
+                if (value === 'google') {
+                    newData.model = 'gemini-1.5-pro';
                 } else if (value === 'huggingface') {
                     newData.model = 'meta-llama/Meta-Llama-3-8B-Instruct';
                 }
@@ -121,7 +121,7 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
                         value={formData.provider}
                         onChange={handleChange}
                     >
-                        <option value="anthropic">Anthropic</option>
+                        <option value="google">Google Gemini</option>
                         <option value="huggingface">Hugging Face</option>
                     </select>
                 </div>
@@ -144,12 +144,12 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
                         onChange={handleChange}
                         style={{ background: 'rgba(15, 23, 42, 0.8)' }}
                     >
-                        {formData.provider === 'anthropic' ? (
+                        {formData.provider === 'google' ? (
                             <>
-                                <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Latest)</option>
-                                <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
-                                <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                                <option value="claude-3-haiku-20240307">Claude 3 Haiku (Legacy)</option>
+                                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                                <option value="gemini-pro">Gemini Pro</option>
+                                <option value="gemini-1.0-pro">Gemini 1.0 Pro</option>
                             </>
                         ) : (
                             <>

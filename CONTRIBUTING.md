@@ -59,7 +59,7 @@ This project and everyone participating in it is governed by our Code of Conduct
    Create a `.env` file in the project root:
 
    ```bash
-   ANTHROPIC_API_KEY=your-api-key-here
+   GOOGLE_GEMINI_KEY=your-api-key-here
    ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
    ```
 
@@ -267,7 +267,7 @@ cd ..
 
 # Run with Docker
 docker build -t llm-agent-builder .
-docker run -p 7860:7860 -e ANTHROPIC_API_KEY=your-key llm-agent-builder
+docker run -p 7860:7860 -e GOOGLE_GEMINI_KEY=your-key llm-agent-builder
 ```
 
 ## Code Review Process

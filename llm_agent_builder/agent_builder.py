@@ -20,8 +20,8 @@ class AgentBuilder:
         agent_name: str, 
         prompt: str, 
         example_task: str, 
-        model: str = "claude-3-5-sonnet-20241022", 
-        provider: str = "anthropic", 
+        model: str = "gemini-1.5-pro", 
+        provider: str = "google", 
         stream: bool = False,
         tools: Optional[List[Dict[str, Any]]] = None,
         enable_multi_step: bool = False,
@@ -34,7 +34,7 @@ class AgentBuilder:
         :param prompt: The system prompt for the agent.
         :param example_task: An example task for the agent.
         :param model: The model to use.
-        :param provider: The provider (anthropic or huggingface).
+        :param provider: The provider (google, huggingface, or openai).
         :param stream: Whether to stream the response.
         :param tools: Optional list of tool definitions for tool calling support.
         :param enable_multi_step: Enable multi-step workflow capabilities.
@@ -46,6 +46,8 @@ class AgentBuilder:
             template_name = "agent_template_hf.py.j2"
         elif provider == "openai":
             template_name = "agent_template_openai.py.j2"
+        elif provider == "google":
+            template_name = "agent_template.py.j2"  # Use same template structure, will need Google Gemini client
         else:
             template_name = "agent_template.py.j2"
             
