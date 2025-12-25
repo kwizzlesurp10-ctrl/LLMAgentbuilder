@@ -1,10 +1,12 @@
-import subprocess
 import os
+import subprocess
 import sys
 
-# Import shared utilities
+# Add parent directory to path to allow importing llm_agent_builder
+# This allows the server to run without the package being installed
+# Consistent with server/main.py import pattern
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from llm_agent_builder.utils import temporary_python_file, build_agent_command
+from llm_agent_builder.utils import build_agent_command, temporary_python_file
 
 try:
     import resource
@@ -15,7 +17,7 @@ except ImportError:
 def run_in_sandbox(code: str, task: str, timeout: int = 30, memory_limit_mb: int = 512) -> str:
     """
     Executes the provided Python code in a sandboxed environment.
-    
+
     :param code: The Python code to execute.
     :param task: The task argument to pass to the script.
     :param timeout: Execution timeout in seconds.
@@ -38,11 +40,7 @@ def run_in_sandbox(code: str, task: str, timeout: int = 30, memory_limit_mb: int
             cmd = build_agent_command(temp_file_path, task)
 
             process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                preexec_fn=set_limits
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, preexec_fn=set_limits
             )
 
             try:

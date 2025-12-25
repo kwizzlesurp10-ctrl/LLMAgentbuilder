@@ -6,6 +6,7 @@ to avoid code duplication.
 """
 
 import os
+import sys
 import tempfile
 from contextlib import contextmanager
 from pathlib import Path
@@ -99,8 +100,6 @@ def build_agent_command(script_path: str, task: str, python_executable: Optional
     :param python_executable: Python executable to use (defaults to sys.executable)
     :return: Command list suitable for subprocess execution
     """
-    import sys
-
     if python_executable is None:
         python_executable = sys.executable
 
