@@ -6,7 +6,6 @@ the conversational AI interface from Hugging Face.
 """
 
 import os
-import requests
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 
@@ -44,19 +43,16 @@ class HuggingChatClient:
     def __init__(
         self,
         token: Optional[str] = None,
-        model: Optional[str] = None,
-        base_url: str = "https://huggingface.co/chat"
+        model: Optional[str] = None
     ):
         """
         Initialize HuggingChat client.
         
         :param token: HuggingFace API token (optional for public models)
         :param model: Model to use (default: Meta-Llama-3.1-70B-Instruct)
-        :param base_url: Base URL for HuggingChat API
         """
         self.token = token or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
         self.model = model or os.environ.get("HUGGINGCHAT_MODEL", self.DEFAULT_MODEL)
-        self.base_url = base_url
         self.conversation_history: List[HuggingChatMessage] = []
         
     def _get_headers(self) -> Dict[str, str]:

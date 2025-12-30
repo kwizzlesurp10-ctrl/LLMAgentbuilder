@@ -318,7 +318,17 @@ class HuggingFaceMCPClient:
         """Get detailed model information."""
         try:
             model_info = self.api.model_info(model_id)
-            card = ModelCard.load(model_id)
+            
+            # Try to load model card (may fail for some models)
+            card_data = None
+            card_text = None
+            try:
+                card = ModelCard.load(model_id)
+                card_data = card.data.to_dict() if card.data else None
+                card_text = card.text[:500] if card.text else None  # First 500 chars
+            except Exception:
+                # Model card not available or failed to load
+                pass
             
             return {
                 "id": model_id,
@@ -329,8 +339,8 @@ class HuggingFaceMCPClient:
                 "pipeline_tag": getattr(model_info, 'pipeline_tag', None),
                 "gated": getattr(model_info, 'gated', False),
                 "library_name": getattr(model_info, 'library_name', None),
-                "card_data": card.data.to_dict() if card.data else None,
-                "card_text": card.text[:500] if card.text else None  # First 500 chars
+                "card_data": card_data,
+                "card_text": card_text
             }
         except Exception as e:
             return {"error": str(e), "model_id": model_id}
