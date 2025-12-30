@@ -15,12 +15,15 @@ LLM Agent Builder is a comprehensive Python application that enables developers 
 
 ## ✨ Features
 
-- 🚀 **Multi-Provider Support**: Generate agents for Anthropic Claude or Hugging Face models
+- 🚀 **Multi-Provider Support**: Generate agents for Anthropic Claude, HuggingFace, and HuggingChat models
+- 💬 **HuggingChat Integration**: Full support for HuggingChat's open-source conversational models
+- 🔒 **Advanced Safety**: Built-in content moderation and safety checking with HuggingFace models
+- 🌐 **MCP Integration**: Model Context Protocol support for standardized HuggingFace resource access
 - 🎨 **Modern Web UI**: Beautiful React 19 interface with dark/light theme toggle
 - 💻 **Powerful CLI**: Interactive mode, batch generation, agent testing, and listing
 - 🔧 **Tool Integration**: Built-in support for tool calling and multi-step workflows
 - 🛡️ **Production Ready**: Rate limiting, retry logic, input validation, and sandboxed execution
-- 📦 **Easy Deployment**: Docker-ready for Hugging Face Spaces
+- 📦 **Easy Deployment**: Docker-ready for Hugging Face Spaces with one-command deployment
 - 🧪 **Comprehensive Testing**: Full test coverage with pytest and CI/CD
 
 ## 🚀 Quick Start
@@ -340,10 +343,49 @@ docker run -p 8000:8000 -e GOOGLE_GEMINI_KEY=your-key llm-agent-builder
 - `claude-3-opus-20240229`
 - `claude-3-haiku-20240307`
 
-### Hugging Face
+### HuggingFace Inference API
 
 - `meta-llama/Meta-Llama-3-8B-Instruct`
 - `mistralai/Mistral-7B-Instruct-v0.3`
+
+### HuggingChat (Conversational)
+
+- `meta-llama/Meta-Llama-3.1-70B-Instruct` (Default, best performance)
+- `meta-llama/Meta-Llama-3.1-8B-Instruct` (Faster)
+- `mistralai/Mistral-7B-Instruct-v0.3` (Efficient)
+- `mistralai/Mixtral-8x7B-Instruct-v0.1` (High quality)
+- `codellama/CodeLlama-34b-Instruct-hf` (Specialized for code)
+- `HuggingFaceH4/zephyr-7b-beta` (Optimized for chat)
+
+## 🔒 Safety & Content Moderation
+
+LLM Agent Builder includes comprehensive safety features powered by HuggingFace:
+
+- **Content Safety Checking**: Automatic toxicity and hate speech detection
+- **Model Safety Validation**: Verify models have safety features before use
+- **Safe Agent Wrapper**: Add safety checking to any agent
+- **Gated Model Support**: Handle models that require approval
+
+See [HUGGINGFACE_GUIDE.md](HUGGINGFACE_GUIDE.md) for detailed safety documentation.
+
+## 🌐 HuggingFace MCP Integration
+
+Model Context Protocol (MCP) provides standardized access to HuggingFace resources:
+
+- **Model Search & Discovery**: Find and analyze models
+- **Dataset Integration**: Access HuggingFace datasets
+- **Space Discovery**: Find and explore Spaces
+- **Safety Validation**: Check model safety features
+- **Inference API**: Run models via standardized interface
+
+```python
+from llm_agent_builder.hf_mcp_integration import HuggingFaceMCPClient
+
+mcp = HuggingFaceMCPClient()
+models = mcp.call_tool("search_models", {"query": "sentiment", "limit": 5})
+```
+
+See [HUGGINGFACE_GUIDE.md](HUGGINGFACE_GUIDE.md) for complete MCP documentation.
 
 ## 🤝 Contributing
 
@@ -384,8 +426,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📚 Additional Resources
 
+- [HuggingFace Integration Guide](HUGGINGFACE_GUIDE.md) - **Complete guide to HuggingChat, MCP, and safety features**
 - [Anthropic API Documentation](https://docs.anthropic.com/)
 - [Hugging Face Hub Documentation](https://huggingface.co/docs/hub/)
+- [HuggingChat Models](https://huggingface.co/chat/models)
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [React Documentation](https://react.dev/)
 
