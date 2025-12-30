@@ -1,0 +1,260 @@
+import os
+from typing import Optional, List, Dict, Any
+from huggingface_hub import InferenceClient, HfApi
+
+class {{ agent_name }}:
+    """
+    {{ agent_name }} - HuggingChat-powered Agent
+    
+    This agent uses HuggingChat models for conversational AI tasks.
+    Supports various open-source models including Llama, Mistral, and more.
+    """
+    
+    def __init__(self, api_key: Optional[str] = None):
+        """
+        Initialize the {{ agent_name }} agent.
+        
+        :param api_key: Hugging Face API token. If None, will try to get from HUGGINGFACEHUB_API_TOKEN env var.
+        """
+        if api_key is None:
+            api_key = os.environ.get("HUGGINGFACEHUB_API_TOKEN")
+        if not api_key:
+            raise ValueError("HUGGINGFACEHUB_API_TOKEN environment variable not set. Please set it in your .env file or environment.")
+        
+        self.client = InferenceClient(token=api_key)
+        self.api = HfApi(token=api_key)
+        self.prompt = "{{- prompt -}}"
+        self.model = os.environ.get("HUGGINGCHAT_MODEL", "{{ model }}")
+        self.conversation_history = []
+        
+    def search_models(self, query: str, task: str = "text-generation", limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        Search for models on the Hugging Face Hub.
+        
+        :param query: Search query
+        :param task: Task filter (e.g., 'text-generation', 'conversational')
+        :param limit: Maximum number of results
+        :return: List of model information
+        """
+        try:
+            models = self.api.list_models(
+                search=query,
+                task=task,
+                limit=limit,
+                sort="downloads",
+                direction=-1
+            )
+            return [
+                {
+                    "id": model.modelId,
+                    "downloads": getattr(model, 'downloads', 0),
+                    "likes": getattr(model, 'likes', 0),
+                    "pipeline_tag": getattr(model, 'pipeline_tag', None),
+                }
+                for model in models
+            ]
+        except Exception as e:
+            raise RuntimeError(f"Error searching models: {e}")
+    
+    def search_datasets(self, query: str, limit: int = 5) -> List[str]:
+        """
+        Search for datasets on the Hugging Face Hub.
+        
+        :param query: Search query
+        :param limit: Maximum number of results
+        :return: List of dataset IDs
+        """
+        try:
+            datasets = self.api.list_datasets(
+                search=query,
+                limit=limit,
+                sort="downloads",
+                direction=-1
+            )
+            return [dataset.id for dataset in datasets]
+        except Exception as e:
+            raise RuntimeError(f"Error searching datasets: {e}")
+    
+    def get_model_safety_info(self, model_id: str) -> Dict[str, Any]:
+        """
+        Get safety and content moderation information for a model.
+        
+        :param model_id: Model ID to check
+        :return: Safety information dictionary
+        """
+        try:
+            model_info = self.api.model_info(model_id)
+            safety_info = {
+                "model_id": model_id,
+                "gated": getattr(model_info, 'gated', False),
+                "tags": getattr(model_info, 'tags', []),
+                "has_safety_checker": any(
+                    tag in getattr(model_info, 'tags', [])
+                    for tag in ['safety', 'content-moderation', 'toxicity-detection']
+                ),
+            }
+            return safety_info
+        except Exception as e:
+            return {"error": str(e), "model_id": model_id}
+    
+    def run(self, task: str, max_tokens: int = 1024, temperature: float = 0.7) -> str:
+        """
+        Run the agent with a given task using conversational approach.
+        
+        :param task: The task or question for the agent
+        :param max_tokens: Maximum tokens to generate (default: 1024)
+        :param temperature: Sampling temperature (default: 0.7)
+        :return: The agent's response
+        """
+        # Build messages with history
+        messages = [
+            {"role": "system", "content": self.prompt}
+        ]
+        
+        # Add conversation history
+        for msg in self.conversation_history:
+            messages.append(msg)
+        
+        # Add current task
+        messages.append({"role": "user", "content": task})
+        
+        try:
+            {% if stream %}
+            response = self.client.chat_completion(
+                model=self.model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stream=True
+            )
+            full_response = ""
+            for chunk in response:
+                if chunk and hasattr(chunk, 'choices') and chunk.choices:
+                    delta = chunk.choices[0].delta if hasattr(chunk.choices[0], 'delta') else None
+                    if delta and hasattr(delta, 'content') and delta.content:
+                        content = delta.content
+                        print(content, end="", flush=True)
+                        full_response += content
+            print()  # Newline after stream
+            result = full_response if full_response else "No response generated."
+            {% else %}
+            response = self.client.chat_completion(
+                model=self.model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stream=False
+            )
+            if response and hasattr(response, 'choices') and response.choices:
+                message = response.choices[0].message
+                if message and hasattr(message, 'content'):
+                    result = message.content
+                else:
+                    raise RuntimeError("Invalid response format from API")
+            else:
+                raise RuntimeError("Invalid response format from API")
+            {% endif %}
+            
+            # Update conversation history
+            self.conversation_history.append({"role": "user", "content": task})
+            self.conversation_history.append({"role": "assistant", "content": result})
+            
+            return result
+            
+        except Exception as e:
+            raise RuntimeError(f"Error calling HuggingChat API: {e}")
+    
+    def clear_history(self):
+        """Clear conversation history."""
+        self.conversation_history = []
+    
+    {% if enable_multi_step %}
+    def run_multi_step(self, task: str, max_steps: int = 5) -> str:
+        """
+        Run multi-step workflow for complex tasks.
+        
+        :param task: Complex task to perform
+        :param max_steps: Maximum number of steps
+        :return: Final result
+        """
+        results = []
+        for step in range(max_steps):
+            if step == 0:
+                prompt = f"Step 1: Break down this task into steps: {task}"
+            else:
+                prompt = f"Step {step + 1}: Continue with the next step based on previous results."
+            
+            result = self.run(prompt)
+            results.append(result)
+            
+            if "complete" in result.lower() or "done" in result.lower():
+                break
+        
+        return "\\n\\n".join(results)
+    {% endif %}
+
+if __name__ == '__main__':
+    import os
+    import sys
+    import argparse
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Run the {{ agent_name }} agent with HuggingChat.")
+    parser.add_argument("--task", default="{{- example_task -}}", help="The task to be performed by the agent")
+    parser.add_argument("--search-model", help="Search for models and get safety information")
+    parser.add_argument("--search-dataset", help="Search for datasets on Hugging Face Hub")
+    parser.add_argument("--clear-history", action="store_true", help="Clear conversation history before running")
+    args = parser.parse_args()
+
+    # Ensure API key is set
+    api_key = os.environ.get("HUGGINGFACEHUB_API_TOKEN")
+
+    try:
+        agent = {{ agent_name }}(api_key=api_key)
+        
+        if args.clear_history:
+            agent.clear_history()
+        
+        if args.search_model:
+            print(f"Searching for models related to: {args.search_model}")
+            models = agent.search_models(args.search_model)
+            if models:
+                print(f"\\nFound {len(models)} models:")
+                for model in models:
+                    print(f"  - {model['id']} (downloads: {model['downloads']}, likes: {model['likes']})")
+                
+                # Get safety info for top model
+                top_model = models[0]['id']
+                print(f"\\nSafety information for {top_model}:")
+                safety_info = agent.get_model_safety_info(top_model)
+                print(f"  Gated: {safety_info.get('gated', 'Unknown')}")
+                print(f"  Has safety features: {safety_info.get('has_safety_checker', False)}")
+            else:
+                print("No models found.")
+        elif args.search_dataset:
+            print(f"Searching for datasets related to: {args.search_dataset}")
+            datasets = agent.search_datasets(args.search_dataset)
+            if datasets:
+                print(f"\\nFound {len(datasets)} datasets:")
+                for dataset in datasets:
+                    print(f"  - {dataset}")
+            else:
+                print("No datasets found.")
+        else:
+            print(f"Running {{ agent_name }} with task: {args.task}\\n")
+            result = agent.run(args.task)
+            print("\\nResponse:")
+            print("-" * 50)
+            {% if not stream %}
+            print(result)
+            {% endif %}
+            print("-" * 50)
+    except ValueError as e:
+        print(f"Configuration error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error running agent: {e}")
+        sys.exit(1)

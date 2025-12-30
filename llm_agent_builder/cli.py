@@ -190,7 +190,7 @@ Examples:
     gen_parser.add_argument("--task", default="Write a Python function that calculates the factorial of a number.", help="Example task for the agent")
     gen_parser.add_argument("--output", default="generated_agents", help="Output directory for the generated agent")
     gen_parser.add_argument("--model", help="Model to use (overrides .env)")
-    gen_parser.add_argument("--provider", default="google", choices=["google", "huggingface"], help="LLM Provider to use")
+    gen_parser.add_argument("--provider", default="google", choices=["google", "huggingface", "huggingchat"], help="LLM Provider to use")
     gen_parser.add_argument("--template", help="Path to a custom Jinja2 template file")
     gen_parser.add_argument("--interactive", action="store_true", help="Run in interactive mode")
     gen_parser.add_argument("--db-path", help="Path to a SQLite database for the agent to use")
@@ -244,13 +244,13 @@ Examples:
                 output = get_input("Output Directory", args.output)
                 default_model = os.environ.get("GOOGLE_GEMINI_MODEL", "gemini-1.5-pro")
                 model = get_input("Model", default_model)
-                provider = get_input("Provider (google/huggingface)", args.provider)
+                provider = get_input("Provider (google/huggingface/huggingchat)", args.provider)
                 template = get_input("Custom Template Path (optional)", "")
                 db_path = get_input("SQLite Database Path (optional)", "")
                 
                 # Validate provider
-                if provider not in ["google", "huggingface"]:
-                    print(f"Error: Invalid provider '{provider}'. Must be 'google' or 'huggingface'.")
+                if provider not in ["google", "huggingface", "huggingchat"]:
+                    print(f"Error: Invalid provider '{provider}'. Must be 'google', 'huggingface', or 'huggingchat'.")
                     sys.exit(1)
             else:
                 name = args.name
