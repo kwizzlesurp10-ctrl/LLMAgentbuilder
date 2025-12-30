@@ -42,7 +42,7 @@ def test_get_available_models():
     assert HuggingChatClient.DEFAULT_MODEL in models
 
 
-@patch('llm_agent_builder.huggingchat_client.InferenceClient')
+@patch('huggingface_hub.InferenceClient')
 def test_chat_non_streaming(mock_inference_client):
     """Test chat without streaming."""
     # Mock the response
@@ -66,7 +66,7 @@ def test_chat_non_streaming(mock_inference_client):
     assert client.conversation_history[1].content == "Test response"
 
 
-@patch('llm_agent_builder.huggingchat_client.InferenceClient')
+@patch('huggingface_hub.InferenceClient')
 def test_chat_with_system_prompt(mock_inference_client):
     """Test chat with system prompt."""
     mock_response = Mock()
@@ -104,7 +104,7 @@ def test_clear_history():
     assert len(client.conversation_history) == 0
 
 
-@patch('llm_agent_builder.huggingchat_client.HfApi')
+@patch('huggingface_hub.HfApi')
 def test_search_models(mock_hf_api):
     """Test searching for models."""
     mock_model = Mock()
@@ -141,7 +141,7 @@ def test_create_huggingchat_agent():
     assert "import" in code
 
 
-@patch('llm_agent_builder.huggingchat_client.InferenceClient')
+@patch('huggingface_hub.InferenceClient')
 def test_chat_error_handling(mock_inference_client):
     """Test error handling in chat."""
     mock_client = Mock()
@@ -158,7 +158,7 @@ def test_chat_error_handling(mock_inference_client):
 
 def test_chat_conversation_history():
     """Test that conversation history is maintained."""
-    with patch('llm_agent_builder.huggingchat_client.InferenceClient') as mock_inference:
+    with patch('huggingface_hub.InferenceClient') as mock_inference:
         mock_response = Mock()
         mock_response.choices = [Mock()]
         mock_response.choices[0].message = Mock()
