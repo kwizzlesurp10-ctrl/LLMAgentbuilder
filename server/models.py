@@ -6,6 +6,7 @@ from typing import Optional, Dict, Any, List
 class ProviderEnum(str, Enum):
     GOOGLE = "google"
     HUGGINGFACE = "huggingface"
+    HUGGINGCHAT = "huggingchat"
     OPENAI = "openai"
 
 
@@ -51,6 +52,17 @@ class GenerateRequest(BaseModel):
             ]
             if v not in allowed:
                 raise ValueError(f"Model {v} not supported for Hugging Face")
+        elif provider == ProviderEnum.HUGGINGCHAT:
+            allowed = [
+                "meta-llama/Meta-Llama-3.1-70B-Instruct",
+                "meta-llama/Meta-Llama-3.1-8B-Instruct",
+                "mistralai/Mistral-7B-Instruct-v0.3",
+                "mistralai/Mixtral-8x7B-Instruct-v0.1",
+                "codellama/CodeLlama-34b-Instruct-hf",
+                "HuggingFaceH4/zephyr-7b-beta"
+            ]
+            if v not in allowed:
+                raise ValueError(f"Model {v} not supported for HuggingChat")
         elif provider == ProviderEnum.OPENAI:
             allowed = [
                 "gpt-4o",

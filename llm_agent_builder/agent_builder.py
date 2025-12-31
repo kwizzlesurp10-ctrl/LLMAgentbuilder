@@ -34,7 +34,7 @@ class AgentBuilder:
         :param prompt: The system prompt for the agent.
         :param example_task: An example task for the agent.
         :param model: The model to use.
-        :param provider: The provider (google, huggingface, or openai).
+        :param provider: The provider (google, huggingface, huggingchat, or openai).
         :param stream: Whether to stream the response.
         :param tools: Optional list of tool definitions for tool calling support.
         :param enable_multi_step: Enable multi-step workflow capabilities.
@@ -44,6 +44,8 @@ class AgentBuilder:
         
         if provider == "huggingface":
             template_name = "agent_template_hf.py.j2"
+        elif provider == "huggingchat":
+            template_name = "agent_template_huggingchat.py.j2"
         elif provider == "openai":
             template_name = "agent_template_openai.py.j2"
         elif provider == "google":
