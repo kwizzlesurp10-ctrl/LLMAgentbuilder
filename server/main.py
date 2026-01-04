@@ -201,6 +201,14 @@ async def test_agent(request: Request, test_request: TestAgentRequest):
 async def health_check():
     return {"status": "ok", "version": "1.1.0"}
 
+from llm_agent_builder.tool_library import ToolLibrary
+
+@app.get("/api/tools")
+@limiter.limit("20/minute")
+async def list_tools(request: Request):
+    """List available standard tools."""
+    return {"tools": ToolLibrary.list_tools()}
+
 # Serve React App
 # Mount the static files from the frontend build directory
 # We assume the frontend is built to 'frontend/dist'

@@ -9,3 +9,6 @@ huggingface_hub
 slowapi
 tenacity
 requests
+gradio_client
+chromadb
+sentence-transformers

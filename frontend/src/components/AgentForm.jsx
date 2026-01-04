@@ -269,6 +269,18 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
                     />
                 </div>
 
+                <div className="form-group">
+                    <label htmlFor="docs_path">Knowledge Base Path (Optional)</label>
+                    <input
+                        type="text"
+                        id="docs_path"
+                        name="docs_path"
+                        value={formData.docs_path || ''}
+                        onChange={handleChange}
+                        placeholder="/path/to/documents (for RAG)"
+                    />
+                </div>
+
                 <div className="form-group checkbox-group">
                     <label>
                         <input

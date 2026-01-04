@@ -1,0 +1,91 @@
+import os
+import sys
+from typing import List, Dict, Any, Optional
+from anthropic import Anthropic
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+class Agent:
+    def __init__(self, name: str, prompt: str, model: str = "claude-3-5-sonnet-20241022"):
+        self.name = name
+        self.prompt = prompt
+        self.model = model
+        self.client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        self.history = []
+
+    def run(self, task: str) -> str:
+        print(f"[{self.name}] Processing task...")
+        messages = [{"role": "system", "content": self.prompt}] + self.history + [{"role": "user", "content": task}]
+        
+        response = self.client.messages.create(
+            model=self.model,
+            max_tokens=4096,
+            messages=[{"role": "user", "content": task}], # System prompt is separate in newer API, but for simplicity sending as user or handling via system param if supported.
+            # actually better to use system param
+            system=self.prompt
+        )
+        
+        result = response.content[0].text
+        self.history.append({"role": "user", "content": task})
+        self.history.append({"role": "assistant", "content": result})
+        return result
+
+class Swarm:
+    def __init__(self, name: str, strategy: str = "round_robin"):
+        self.name = name
+        self.strategy = strategy
+        self.agents:Dict[str, Agent] = {}
+
+    def add_agent(self, agent: Agent):
+        self.agents[agent.name] = agent
+
+    def run(self, task: str):
+        print(f"[{self.name}] Starting swarm execution with strategy: {self.strategy}")
+        
+        if self.strategy == "round_robin":
+            # Simple example: Pass the task to each agent in sequence, passing the output of one as input to the next
+            current_input = task
+            for agent_name, agent in self.agents.items():
+                print(f"[{self.name}] Handoff to {agent_name}")
+                current_input = agent.run(current_input)
+                print(f"[{self.name}] Output from {agent_name}: {current_input[:100]}...")
+            return current_input
+            
+        elif self.strategy == "parallel":
+             # Run all agents on the same task and aggregate
+            results = {}
+            for agent_name, agent in self.agents.items():
+                results[agent_name] = agent.run(task)
+            return results
+        
+        else:
+            return "Unknown strategy"
+
+def main():
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        print("Error: ANTHROPIC_API_KEY not found in environment variables.")
+        return
+
+    # Initialize Swarm
+    swarm = Swarm("{{ swarm_name }}", strategy="{{ strategy }}")
+
+    # Initialize Agents
+    {% for agent in agents %}
+    agent_{{ loop.index }} = Agent(
+        name="{{ agent.name }}",
+        prompt="""{{ agent.prompt }}""",
+        model="{{ agent.model }}"
+    )
+    swarm.add_agent(agent_{{ loop.index }})
+    {% endfor %}
+
+    # Example Execution
+    task = "{{ example_task }}"
+    print(f"Task: {task}\n")
+    final_result = swarm.run(task)
+    print(f"\nFinal Result:\n{final_result}")
+
+if __name__ == "__main__":
+    main()

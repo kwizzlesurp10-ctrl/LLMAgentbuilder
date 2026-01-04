@@ -13,13 +13,18 @@ class GenerateRequest(BaseModel):
     name: str
     prompt: str
     task: str
-    provider: ProviderEnum = ProviderEnum.ANTHROPIC
-    model: str
+    model: str = "claude-3-5-sonnet-20241022"
+    provider: str = "anthropic"
     stream: bool = False
     db_path: Optional[str] = None
+    tools: Optional[List[Dict[str, Any]]] = None
+    enable_multi_step: bool = False
+    agents: Optional[List[Dict[str, Any]]] = None
+    swarm_config: Optional[Dict[str, Any]] = None
+    docs_path: Optional[str] = None
     version: Optional[str] = None  # Version identifier (auto-generated if None)
     parent_version: Optional[str] = None  # Parent version for branching
-
+    
     @field_validator('name')
     @classmethod
     def validate_name(cls, v):

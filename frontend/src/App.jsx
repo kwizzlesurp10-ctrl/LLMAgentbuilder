@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import AgentForm from './components/AgentForm';
 import CodePreview from './components/CodePreview';
+import FlowBuilder from './pages/FlowBuilder';
 
 function App() {
+  const [view, setView] = useState('classic'); // 'classic' or 'visual'
   const [generatedCode, setGeneratedCode] = useState(null);
   const [generatedPath, setGeneratedPath] = useState(null);
   const [testResult, setTestResult] = useState(null);
@@ -71,12 +73,42 @@ function App() {
   };
 
   return (
-    <div className="container">
-      <header className="header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '1rem' }}>
-          <div>
-            <h1>LLM Agent Builder</h1>
-            <p>Design, configure, and generate AI agents in seconds.</p>
+    <div className="container" style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <header className="header" style={{ flexShrink: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div>
+              <h1 style={{ margin: 0 }}>LLM Agent Builder</h1>
+              <p style={{ margin: 0, opacity: 0.7 }}>Design, configure, and generate AI agents.</p>
+            </div>
+            <div style={{ display: 'flex', background: 'var(--glass-bg)', padding: '4px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+              <button
+                onClick={() => setView('classic')}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: view === 'classic' ? 'var(--primary-color)' : 'transparent',
+                  color: view === 'classic' ? 'white' : 'var(--text-primary)',
+                  cursor: 'pointer'
+                }}
+              >
+                Classic
+              </button>
+              <button
+                onClick={() => setView('visual')}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: view === 'visual' ? 'var(--primary-color)' : 'transparent',
+                  color: view === 'visual' ? 'white' : 'var(--text-primary)',
+                  cursor: 'pointer'
+                }}
+              >
+                Visual Builder
+              </button>
+            </div>
           </div>
           <button
             onClick={toggleTheme}
@@ -97,32 +129,40 @@ function App() {
         </div>
       </header>
 
-      {error && (
-        <div style={{
-          background: 'rgba(239, 68, 68, 0.1)',
-          border: '1px solid rgba(239, 68, 68, 0.2)',
-          color: '#fca5a5',
-          padding: '1rem',
-          borderRadius: '0.5rem',
-          marginBottom: '2rem'
-        }}>
-          {error}
+      {view === 'visual' ? (
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <FlowBuilder />
+        </div>
+      ) : (
+        <div style={{ flex: 1, overflow: 'auto', padding: '1rem' }}>
+          {error && (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.2)',
+              color: '#fca5a5',
+              padding: '1rem',
+              borderRadius: '0.5rem',
+              marginBottom: '2rem'
+            }}>
+              {error}
+            </div>
+          )}
+
+          <div className="layout">
+            <AgentForm
+              onGenerate={handleGenerate}
+              isLoading={isLoading}
+              generatedCode={generatedCode}
+              onTestResult={setTestResult}
+            />
+            <CodePreview
+              code={generatedCode}
+              path={generatedPath}
+              testResult={testResult}
+            />
+          </div>
         </div>
       )}
-
-      <div className="layout">
-        <AgentForm
-          onGenerate={handleGenerate}
-          isLoading={isLoading}
-          generatedCode={generatedCode}
-          onTestResult={setTestResult}
-        />
-        <CodePreview
-          code={generatedCode}
-          path={generatedPath}
-          testResult={testResult}
-        />
-      </div>
     </div>
   );
 }

@@ -15,6 +15,7 @@ if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
 from llm_agent_builder.agent_builder import AgentBuilder
+from llm_agent_builder.image_generator import ImageGenerator
 from dotenv import load_dotenv
 
 def get_input(prompt: str, default: str, validator=None) -> str:
@@ -274,7 +275,7 @@ Examples:
                 os.environ["ANTHROPIC_MODEL"] = model
             
             # Create an instance of the AgentBuilder
-            builder = AgentBuilder(template_path=template)
+            builder = AgentBuilder(template_path=template if template else None)
             
             # Generate the agent code
             default_model = model or ("claude-3-5-sonnet-20241022" if provider == "anthropic" else "meta-llama/Meta-Llama-3-8B-Instruct")
@@ -297,6 +298,19 @@ Examples:
             
             print(f"\n✓ Agent '{name}' has been created and saved to '{output_path}'")
             print("To use the agent, you need to set the ANTHROPIC_API_KEY environment variable.")
+            
+            # Offer to generate avatar
+            if args.interactive or no_args_provided:
+                generate_avatar = get_input("Generate avatar for this agent? (Y/n)", "Y")
+                if generate_avatar.lower() == "y":
+                    avatar_prompt = f"A portrait of {name}, {prompt}"
+                    # Truncate prompt if too long to avoid issues
+                    if len(avatar_prompt) > 500:
+                        avatar_prompt = avatar_prompt[:497] + "..."
+                    
+                    avatar_path = os.path.join(output, f"{name.lower()}_avatar.webp")
+                    generator = ImageGenerator()
+                    generator.generate_avatar(avatar_prompt, avatar_path)
             
         elif args.command == "list":
             list_agents(args.output)
