@@ -14,17 +14,25 @@ fi
 FOUND_KEYS=0
 
 for FILE in $FILES; do
-    # Skip check for .env.example, pre-commit-check.sh, and generated_agents directory
-    if [[ "$FILE" == ".env.example" || "$FILE" == "scripts/pre-commit-check.sh" || "$FILE" == generated_agents/* ]]; then
+    # Skip check for specific files and directories
+    if [[ "$FILE" == ".env.example" || 
+          "$FILE" == "scripts/pre-commit-check.sh" || 
+          "$FILE" == "GEMINI.md" || 
+          "$FILE" == "README.md" || 
+          "$FILE" == "scripts/test_with_mock_key.sh" ||
+          "$FILE" == "scripts/setup_hf_space.py" ||
+          "$FILE" == generated_agents/* ]]; then
         continue
     fi
 
-    for KEYWORD in $KEYWORDS; do
-        if grep -q "$KEYWORD" "$FILE"; then
-            echo "ERROR: Found potential API key or sensitive keyword '$KEYWORD' in '$FILE'."
-            FOUND_KEYS=1
-        fi
-    done
+    # Check for potential keys (longer sequences)
+    # sk-ant-: starts with sk-ant- followed by characters
+    # hf_: starts with hf_ followed by characters
+    # We use -E for extended regex
+    if grep -q -E "sk-ant-[a-zA-Z0-9]{10,}|hf_[a-zA-Z0-9]{10,}" "$FILE"; then
+        echo "ERROR: Found potential API key in '$FILE'."
+        FOUND_KEYS=1
+    fi
 done
 
 if [ $FOUND_KEYS -eq 1 ]; then

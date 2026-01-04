@@ -44,8 +44,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY llm_agent_builder/ ./llm_agent_builder/
 COPY server/ ./server/
 COPY main.py .
-COPY workflow.db .
-COPY workflow_impl.py .
 
 # Copy frontend build from stage 1
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
