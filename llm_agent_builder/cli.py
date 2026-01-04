@@ -16,6 +16,7 @@ if str(_project_root) not in sys.path:
 
 from llm_agent_builder.agent_builder import AgentBuilder
 from llm_agent_builder.image_generator import ImageGenerator
+from llm_agent_builder.huggingface_utils import deploy_to_hf
 from dotenv import load_dotenv
 
 def get_input(prompt: str, default: str, validator=None) -> str:
@@ -128,16 +129,26 @@ def batch_generate(config_file: str, output_dir: str = "generated_agents", templ
                 model = config.get("model", "claude-3-5-sonnet-20241022")
                 provider = config.get("provider", "anthropic")
                 
+                docs_path = config.get("docs_path")
+                swarm_config = config.get("swarm_config")
+                agents = config.get("agents")
+                
                 if not prompt or not task:
-                    print(f"  [{i}] Skipping '{agent_name}': missing prompt or task")
-                    continue
+                    # Swarms might not have a simple prompt/task in the top level config depending on structure, 
+                    # but if it's a swarm, we might expect 'agents' list.
+                    if not swarm_config and not agents:
+                         print(f"  [{i}] Skipping '{agent_name}': missing prompt or task")
+                         continue
                 
                 agent_code = builder.build_agent(
                     agent_name=agent_name,
                     prompt=prompt,
                     example_task=task,
                     model=model,
-                    provider=provider
+                    provider=provider,
+                    docs_path=docs_path,
+                    swarm_config=swarm_config,
+                    agents=agents
                 )
                 
                 agent_file = output_path / f"{agent_name.lower()}.py"
@@ -195,6 +206,7 @@ Examples:
     gen_parser.add_argument("--template", help="Path to a custom Jinja2 template file")
     gen_parser.add_argument("--interactive", action="store_true", help="Run in interactive mode")
     gen_parser.add_argument("--db-path", help="Path to a SQLite database for the agent to use")
+    gen_parser.add_argument("--docs-path", help="Path to a directory of documents for RAG (Knowledge Base)")
     
     # List subcommand
     list_parser = subparsers.add_parser("list", help="List all generated agents")
@@ -215,6 +227,15 @@ Examples:
     web_parser = subparsers.add_parser("web", help="Launch the web interface")
     web_parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
     web_parser.add_argument("--port", type=int, default=7860, help="Port to bind to")
+    
+    # Deploy subcommand
+    deploy_parser = subparsers.add_parser("deploy", help="Deploy to Hugging Face Spaces")
+    deploy_parser.add_argument("--repo", help="Target repository ID (e.g., 'username/repo-name')")
+    deploy_parser.add_argument("--name", help="Name for the Space (used if --repo is not provided)")
+    deploy_parser.add_argument("--sdk", default="docker", choices=["docker", "gradio", "streamlit", "static"], help="Space SDK type")
+    deploy_parser.add_argument("--private", action="store_true", help="Make the Space private")
+    deploy_parser.add_argument("--public", type=str, default="true", help="Set to 'false' for private")
+    deploy_parser.add_argument("--type", help="Legacy flag for repo-type or SDK type")
     
     args = parser.parse_args()
     
@@ -248,6 +269,7 @@ Examples:
                 provider = get_input("Provider (anthropic/huggingface)", args.provider)
                 template = get_input("Custom Template Path (optional)", "")
                 db_path = get_input("SQLite Database Path (optional)", "")
+                docs_path = get_input("Knowledge Base Path (optional)", "")
                 
                 # Validate provider
                 if provider not in ["anthropic", "huggingface"]:
@@ -262,6 +284,7 @@ Examples:
                 provider = args.provider
                 template = args.template
                 db_path = args.db_path
+                docs_path = args.docs_path
             
             # Validate agent name
             try:
@@ -285,7 +308,8 @@ Examples:
                 example_task=task, 
                 model=default_model,
                 provider=provider,
-                db_path=db_path if db_path else None
+                db_path=db_path if db_path else None,
+                docs_path=docs_path if docs_path else None
             )
             
             # Define the output path for the generated agent
@@ -323,6 +347,29 @@ Examples:
             
         elif args.command == "web":
             run_web_server(args.host, args.port)
+            
+        elif args.command == "deploy":
+            repo_id = args.repo or args.name or "LLMAgentBuilder"
+            sdk = args.sdk
+            
+            # Handle legacy/redundant flags from user request
+            if args.type == "docker":
+                sdk = "docker"
+            
+            is_private = args.private or (args.public.lower() == "false")
+            
+            print(f"Starting deployment of '{repo_id}' to Hugging Face Spaces...")
+            try:
+                url = deploy_to_hf(
+                    repo_id=repo_id,
+                    private=is_private,
+                    space_sdk=sdk
+                )
+                print(f"\n✓ Deployment successful!")
+                print(f"Your Space is available at: {url}")
+            except Exception as e:
+                print(f"Error during deployment: {e}")
+                sys.exit(1)
             
     except KeyboardInterrupt:
         print("\n\nOperation cancelled by user.")

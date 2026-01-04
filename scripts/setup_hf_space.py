@@ -48,9 +48,14 @@ def main():
             return
 
     print("Uploading files... This may take a minute.")
+    
+    # Determine project root (parent of scripts/)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_dir)
+    
     try:
         upload_url = upload_folder(
-            folder_path=".",
+            folder_path=project_root,
             repo_id=repo_id,
             repo_type="space",
             token=token,

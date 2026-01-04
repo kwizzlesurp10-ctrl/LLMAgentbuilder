@@ -15,7 +15,7 @@ FOUND_KEYS=0
 
 for FILE in $FILES; do
     # Skip check for .env.example, pre-commit-check.sh, and generated_agents directory
-    if [[ "$FILE" == ".env.example" || "$FILE" == "pre-commit-check.sh" || "$FILE" == generated_agents/* ]]; then
+    if [[ "$FILE" == ".env.example" || "$FILE" == "scripts/pre-commit-check.sh" || "$FILE" == generated_agents/* ]]; then
         continue
     fi
 

@@ -1,6 +1,10 @@
 #!/bin/bash
 # Test script using mock API key for testing purposes
 
+# Ensure we are running from the project root
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$PROJECT_ROOT"
+
 # Set mock API key for testing
 export ANTHROPIC_API_KEY="sk-ant-test-mock-key-for-testing-purposes-1234567890abcdef"
 
