@@ -9,7 +9,13 @@ DB_PATH = "workflow.db"
 
 class DatabaseManager:
     def __init__(self, db_path: str = DB_PATH):
-        self.conn = sqlite3.connect(db_path)
+        self.db_path = db_path
+        self.conn = None
+        self._connect()
+
+    def _connect(self):
+        """Establish database connection."""
+        self.conn = sqlite3.connect(self.db_path)
         self.conn.row_factory = sqlite3.Row
         self.create_tables()
 
@@ -46,6 +52,18 @@ class DatabaseManager:
         self.conn.commit()
         print(f"Stored article: {article['title']}")
 
+    def insert_articles_batch(self, articles: List[Dict[str, str]]):
+        """Insert multiple articles in a single transaction for better performance."""
+        if not articles:
+            return
+        cursor = self.conn.cursor()
+        cursor.executemany('''
+            INSERT OR IGNORE INTO articles (id, url, title, content, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        ''', [(a['id'], a['url'], a['title'], a['content'], a['created_at']) for a in articles])
+        self.conn.commit()
+        print(f"Stored {len(articles)} articles in batch")
+
     def insert_alert(self, title: str, message: str, source_url: str):
         cursor = self.conn.cursor()
         cursor.execute('''
@@ -55,8 +73,22 @@ class DatabaseManager:
         self.conn.commit()
         print(f"ALERT: {title} - {message}")
 
+    def insert_alerts_batch(self, alerts: List[tuple]):
+        """Insert multiple alerts in a single transaction for better performance."""
+        if not alerts:
+            return
+        cursor = self.conn.cursor()
+        cursor.executemany('''
+            INSERT INTO alerts (title, message, source_url, created_at)
+            VALUES (?, ?, ?, ?)
+        ''', alerts)
+        self.conn.commit()
+        print(f"Stored {len(alerts)} alerts in batch")
+
     def close(self):
-        self.conn.close()
+        if self.conn:
+            self.conn.close()
+            self.conn = None
 
 class Scraper:
     def scrape(self, url: str) -> Optional[Dict[str, str]]:
@@ -87,15 +119,18 @@ class Scraper:
 
 class Analyzer:
     def __init__(self, keywords: List[str]):
-        self.keywords = keywords
+        # Pre-lowercase keywords for faster comparison
+        self.keywords = [k.lower() for k in keywords]
 
     def analyze(self, article: Dict[str, str]) -> List[str]:
         found_keywords = []
-        content = article.get('content', '').lower()
-        title = article.get('title', '').lower()
+        # Lowercase once instead of per keyword
+        content_lower = article.get('content', '').lower()
+        title_lower = article.get('title', '').lower()
         
         for keyword in self.keywords:
-            if keyword.lower() in content or keyword.lower() in title:
+            if keyword in content_lower or keyword in title_lower:
+                # Return original case keyword
                 found_keywords.append(keyword)
         
         return found_keywords
@@ -108,19 +143,31 @@ class WorkflowController:
 
     def run(self, urls: List[str]):
         print("Starting workflow...")
+        articles = []
+        alerts_to_insert = []
+        
+        # Collect all articles first
         for url in urls:
             article = self.scraper.scrape(url)
             if article:
-                self.db.insert_article(article)
+                articles.append(article)
                 
                 keywords = self.analyzer.analyze(article)
                 if keywords:
                     for keyword in keywords:
-                        self.db.insert_alert(
-                            title="Keyword Detected",
-                            message=f"Keyword '{keyword}' detected in {article['title']}",
-                            source_url=article['url']
-                        )
+                        alerts_to_insert.append((
+                            "Keyword Detected",
+                            f"Keyword '{keyword}' detected in {article['title']}",
+                            article['url'],
+                            datetime.now().isoformat()
+                        ))
+        
+        # Batch insert for better performance
+        if articles:
+            self.db.insert_articles_batch(articles)
+        if alerts_to_insert:
+            self.db.insert_alerts_batch(alerts_to_insert)
+            
         self.db.close()
         print("Workflow completed.")
 
