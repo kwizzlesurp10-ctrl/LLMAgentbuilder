@@ -94,6 +94,52 @@ class ConfigManager:
         logger.info("No configuration file found, using built-in defaults")
         return None
     
+    def _load_config_files(self, config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
+        """
+        Load configuration files with proper cascading.
+        
+        Returns merged configuration from:
+        1. default.yaml (base)
+        2. environment-specific yaml (overrides)
+        
+        If explicit config_path is provided or CONFIG_FILE env var is set, 
+        only that file is loaded without cascading.
+        """
+        project_root = Path(__file__).parent.parent.parent
+        config_dir = project_root / "config"
+        
+        config_dict: Dict[str, Any] = {}
+        
+        # Check if explicit path provided or CONFIG_FILE env var is set
+        explicit_config = config_path or os.environ.get("CONFIG_FILE")
+        if explicit_config:
+            path = Path(explicit_config)
+            if path.exists():
+                logger.info(f"Loading explicit configuration file: {path}")
+                if path.suffix in (".yaml", ".yml"):
+                    return self._load_yaml(path)
+                elif path.suffix == ".json":
+                    return self._load_json(path)
+            else:
+                logger.warning(f"Explicit config file not found: {path}")
+            return config_dict
+        
+        # Load default.yaml if it exists (base configuration)
+        default_config_file = config_dir / "default.yaml"
+        if default_config_file.exists():
+            logger.info(f"Loading default configuration: {default_config_file}")
+            config_dict = self._load_yaml(default_config_file)
+        
+        # Load environment-specific config if it exists (overrides default)
+        environment = os.environ.get("ENVIRONMENT", os.environ.get("ENV", "production")).lower()
+        env_config_file = config_dir / f"{environment}.yaml"
+        if env_config_file.exists() and env_config_file != default_config_file:
+            logger.info(f"Loading environment-specific config: {env_config_file}")
+            env_config = self._load_yaml(env_config_file)
+            config_dict = self._merge_config(config_dict, env_config)
+        
+        return config_dict
+    
     def _load_yaml(self, file_path: Path) -> Dict[str, Any]:
         """Load configuration from YAML file."""
         try:
@@ -115,7 +161,8 @@ class ConfigManager:
     
     def _merge_config(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
         """Recursively merge two configuration dictionaries."""
-        result = base.copy()
+        import copy
+        result = copy.deepcopy(base)
         for key, value in override.items():
             if key in result and isinstance(result[key], dict) and isinstance(value, dict):
                 result[key] = self._merge_config(result[key], value)
@@ -130,42 +177,60 @@ class ConfigManager:
         Environment variables can override config values using double underscore notation:
         - SERVER__HOST -> config["server"]["host"]
         - PROVIDERS__GOOGLE__RATE_LIMIT -> config["providers"]["google"]["rate_limit"]
-        """
-        result = config_dict.copy()
         
-        # Collect all env vars that match our pattern
+        Also handles top-level keys like ENVIRONMENT directly.
+        """
+        import copy
+        # Start with a copy of the base config
+        result = copy.deepcopy(config_dict)
+        
+        # Build env overrides as a separate dict, then merge
+        env_overrides: Dict[str, Any] = {}
+        
+        # Helper to parse value
+        def parse_value(val: str) -> Any:
+            """Parse string value to appropriate type."""
+            try:
+                # Try boolean
+                if val.lower() in ("true", "false"):
+                    return val.lower() == "true"
+                # Try integer (including negative)
+                elif val.lstrip("-").isdigit():
+                    return int(val)
+                # Try float
+                elif "." in val and val.replace(".", "", 1).replace("-", "", 1).isdigit():
+                    return float(val)
+                else:
+                    return val
+            except (ValueError, AttributeError):
+                return val
+        
+        # Process all environment variables
         for env_key, env_value in os.environ.items():
             if "__" in env_key:
-                # Convert env var to nested dict path
+                # Nested key with double underscore
                 parts = env_key.lower().split("__")
                 
-                # Navigate to the nested location
-                current = result
+                # Build nested dict in env_overrides
+                current = env_overrides
                 for part in parts[:-1]:
                     if part not in current:
                         current[part] = {}
-                    elif not isinstance(current[part], dict):
-                        # Can't override non-dict value
-                        continue
                     current = current[part]
-                
-                # Set the value (try to parse as bool/int/float if possible)
-                key = parts[-1]
-                try:
-                    # Try boolean
-                    if env_value.lower() in ("true", "false"):
-                        current[key] = env_value.lower() == "true"
-                    # Try integer
-                    elif env_value.isdigit():
-                        current[key] = int(env_value)
-                    # Try float
-                    elif "." in env_value and env_value.replace(".", "").replace("-", "").isdigit():
-                        current[key] = float(env_value)
-                    else:
-                        current[key] = env_value
-                except (ValueError, AttributeError):
-                    current[key] = env_value
+                current[parts[-1]] = parse_value(env_value)
+            else:
+                # Check if this is a top-level config key (lowercase to match)
+                key_lower = env_key.lower()
+                # Only handle known top-level keys to avoid polluting config
+                top_level_keys = [
+                    "environment", "generated_agents_dir", "template_dir", 
+                    "enable_metrics", "enable_rate_limiting"
+                ]
+                if key_lower in top_level_keys:
+                    env_overrides[key_lower] = parse_value(env_value)
         
+        # Merge env overrides with result
+        result = self._merge_config(result, env_overrides)
         return result
     
     def _load_config(self, config_path: Optional[Union[str, Path]] = None) -> AppConfig:
@@ -178,22 +243,8 @@ class ConfigManager:
         3. Default config file
         4. Built-in defaults
         """
-        config_dict: Dict[str, Any] = {}
-        
-        # Find and load config file
-        config_file = self._find_config_file(config_path)
-        if config_file:
-            self._config_file = config_file
-            
-            if config_file.suffix == ".yaml" or config_file.suffix == ".yml":
-                file_config = self._load_yaml(config_file)
-            elif config_file.suffix == ".json":
-                file_config = self._load_json(config_file)
-            else:
-                logger.warning(f"Unsupported config file format: {config_file.suffix}")
-                file_config = {}
-            
-            config_dict = file_config
+        # Load config files with proper cascading
+        config_dict = self._load_config_files(config_path)
         
         # Apply environment variable overrides
         config_dict = self._apply_env_overrides(config_dict)
@@ -207,20 +258,26 @@ class ConfigManager:
         for env_var, path in legacy_env_mapping.items():
             value = os.environ.get(env_var)
             if value:
+                # Navigate and create nested structure if needed
                 current = config_dict
                 for part in path[:-1]:
                     if part not in current:
                         current[part] = {}
                     current = current[part]
+                # Set the value (overrides existing)
                 current[path[-1]] = value
         
         # Validate and create AppConfig
         try:
+            # Debug: log config_dict before validation
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"Config dict before validation: {config_dict}")
             config = AppConfig(**config_dict)
             logger.info(f"Configuration loaded successfully (environment: {config.environment})")
             return config
         except Exception as e:
             logger.error(f"Error validating configuration: {e}")
+            logger.error(f"Config dict was: {config_dict}")
             raise
     
     def reload(self, config_path: Optional[Union[str, Path]] = None) -> None:

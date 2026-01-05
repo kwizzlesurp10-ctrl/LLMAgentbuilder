@@ -25,7 +25,7 @@ class ProviderConfig(BaseModel):
 class ProvidersConfig(BaseModel):
     """Configuration for all LLM providers."""
     google: ProviderConfig = Field(
-        default=ProviderConfig(
+        default_factory=lambda: ProviderConfig(
             api_key_env="GOOGLE_GEMINI_KEY",
             default_model="gemini-1.5-pro",
             rate_limit=20,
@@ -33,7 +33,7 @@ class ProvidersConfig(BaseModel):
         )
     )
     anthropic: ProviderConfig = Field(
-        default=ProviderConfig(
+        default_factory=lambda: ProviderConfig(
             api_key_env="ANTHROPIC_API_KEY",
             default_model="claude-3-5-sonnet-20241022",
             rate_limit=20,
@@ -41,7 +41,7 @@ class ProvidersConfig(BaseModel):
         )
     )
     huggingface: Optional[ProviderConfig] = Field(
-        default=ProviderConfig(
+        default_factory=lambda: ProviderConfig(
             api_key_env="HUGGINGFACEHUB_API_TOKEN",
             default_model="meta-llama/Meta-Llama-3-8B-Instruct",
             rate_limit=10,
