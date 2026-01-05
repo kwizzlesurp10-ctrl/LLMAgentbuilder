@@ -151,6 +151,7 @@ class {{ agent_name }}:
         
         return final_result or "Multi-step workflow completed."
     {% endif %}
+    {% endif %}
 
     def run(self, task: str{% if enable_multi_step %}, use_multi_step: bool = False{% endif %}):
         {% if enable_multi_step %}
