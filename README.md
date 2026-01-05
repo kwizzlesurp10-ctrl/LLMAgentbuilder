@@ -234,18 +234,48 @@ LLMAgentbuilder/
 
 ### Multi-Step Workflows
 
-Agents can be generated with multi-step workflow capabilities:
+Agents can be generated with multi-step workflow capabilities that allow iterative refinement:
 
+**CLI:**
+```bash
+llm-agent-builder generate \
+  --name "ResearchAgent" \
+  --prompt "You are a research assistant" \
+  --task "Research topic X" \
+  --enable-multi-step
+```
+
+**Python:**
 ```python
+from llm_agent_builder.agent_builder import AgentBuilder
+
+builder = AgentBuilder()
+code = builder.build_agent(
+    agent_name="ResearchAgent",
+    prompt="You are a research assistant",
+    example_task="Research topic X",
+    enable_multi_step=True
+)
+
 # In your generated agent
-agent = MyAgent(api_key="your-key")
+agent = ResearchAgent(api_key="your-key")
 result = agent.run_multi_step("Complete this complex task", max_steps=5)
 ```
 
 ### Tool Integration
 
-Generate agents with tool calling support:
+Generate agents with tool calling support to extend capabilities:
 
+**CLI:**
+```bash
+llm-agent-builder generate \
+  --name "ToolAgent" \
+  --prompt "You are an agent with tools" \
+  --task "Use tools to complete tasks" \
+  --tools examples/tools_example.json
+```
+
+**Python:**
 ```python
 builder = AgentBuilder()
 code = builder.build_agent(
@@ -264,9 +294,11 @@ code = builder.build_agent(
             }
         }
     ],
-    enable_multi_step=True
+    enable_multi_step=True  # Can combine with multi-step!
 )
 ```
+
+**📖 See [MULTI_STEP_AND_TOOLS_GUIDE.md](MULTI_STEP_AND_TOOLS_GUIDE.md) for comprehensive documentation and examples.**
 
 ### API Endpoints
 

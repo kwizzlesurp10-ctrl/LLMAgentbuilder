@@ -20,6 +20,8 @@ class GenerateRequest(BaseModel):
     db_path: Optional[str] = None
     version: Optional[str] = None  # Version identifier (auto-generated if None)
     parent_version: Optional[str] = None  # Parent version for branching
+    enable_multi_step: bool = False  # Enable multi-step workflow capabilities
+    tools: Optional[List[Dict[str, Any]]] = None  # List of tool definitions for tool calling
 
     @field_validator('name')
     @classmethod

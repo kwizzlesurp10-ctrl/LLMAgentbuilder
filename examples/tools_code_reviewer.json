@@ -1,0 +1,39 @@
+[
+  {
+    "name": "analyze_code",
+    "description": "Analyze code for bugs, security issues, and code quality",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "The code to analyze"
+        },
+        "language": {
+          "type": "string",
+          "description": "Programming language (e.g., 'python', 'javascript')"
+        }
+      },
+      "required": ["code"]
+    }
+  },
+  {
+    "name": "suggest_improvements",
+    "description": "Suggest code improvements and optimizations",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "The code to improve"
+        },
+        "focus": {
+          "type": "string",
+          "enum": ["performance", "readability", "security", "best_practices"],
+          "description": "Focus area for improvements"
+        }
+      },
+      "required": ["code"]
+    }
+  }
+]
