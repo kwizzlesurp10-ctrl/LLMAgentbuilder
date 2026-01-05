@@ -28,6 +28,9 @@ def clean_env(monkeypatch):
     
     # Reset singleton instance to force reload
     ConfigManager._instance = None
+    # Reset module-level singleton
+    from llm_agent_builder import config as config_module
+    config_module._config_manager = None
 
 
 @pytest.fixture
@@ -35,8 +38,10 @@ def mock_google_env(monkeypatch):
     """Mock environment with Google Gemini key."""
     monkeypatch.setenv("GOOGLE_GEMINI_KEY", "test-google-key")
     monkeypatch.setenv("GOOGLE_GEMINI_MODEL", "gemini-1.5-pro")
-    # Reset singleton instance to force reload
+    # Reset singleton instances to force reload
     ConfigManager._instance = None
+    from llm_agent_builder import config as config_module
+    config_module._config_manager = None
 
 
 @pytest.fixture
@@ -44,8 +49,10 @@ def mock_anthropic_env(monkeypatch):
     """Mock environment with Anthropic key."""
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-anthropic-key")
     monkeypatch.setenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
-    # Reset singleton instance to force reload
+    # Reset singleton instances to force reload
     ConfigManager._instance = None
+    from llm_agent_builder import config as config_module
+    config_module._config_manager = None
 
 
 @pytest.fixture
@@ -55,8 +62,10 @@ def mock_multi_provider_env(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-anthropic-key")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key")
     monkeypatch.setenv("HUGGINGFACEHUB_API_TOKEN", "test-hf-token")
-    # Reset singleton instance to force reload
+    # Reset singleton instances to force reload
     ConfigManager._instance = None
+    from llm_agent_builder import config as config_module
+    config_module._config_manager = None
 
 
 class TestProviderConfig:

@@ -5,9 +5,10 @@ from typing import Optional, Dict, Any, List
 
 class ProviderEnum(str, Enum):
     GOOGLE = "google"
+    ANTHROPIC = "anthropic"
+    OPENAI = "openai"
     HUGGINGFACE = "huggingface"
     HUGGINGCHAT = "huggingchat"
-    OPENAI = "openai"
 
 
 class GenerateRequest(BaseModel):
@@ -45,6 +46,16 @@ class GenerateRequest(BaseModel):
             ]
             if v not in allowed:
                 raise ValueError(f"Model {v} not supported for Google Gemini")
+        elif provider == ProviderEnum.ANTHROPIC:
+            allowed = [
+                "claude-3-5-sonnet-20241022",
+                "claude-3-5-haiku-20241022",
+                "claude-3-opus-20240229",
+                "claude-3-sonnet-20240229",
+                "claude-3-haiku-20240307"
+            ]
+            if v not in allowed:
+                raise ValueError(f"Model {v} not supported for Anthropic")
         elif provider == ProviderEnum.HUGGINGFACE:
             allowed = [
                 "meta-llama/Meta-Llama-3-8B-Instruct",
