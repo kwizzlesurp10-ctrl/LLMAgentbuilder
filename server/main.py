@@ -36,7 +36,7 @@ except Exception as e:
 
 from llm_agent_builder.agent_builder import AgentBuilder
 from llm_agent_builder.agent_engine import AgentEngine
-from server.models import GenerateRequest, ProviderEnum, TestAgentRequest
+from server.models import GenerateRequest, ProviderEnum, TestAgentRequest, EnhancePromptRequest
 from server.sandbox import run_in_sandbox
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -195,6 +195,98 @@ async def test_agent(request: Request, test_request: TestAgentRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Test execution error: {str(e)}")
+
+@app.post("/api/enhance-prompt")
+@limiter.limit("5/minute")
+async def enhance_prompt(request: Request, enhance_request: EnhancePromptRequest):
+    """Enhance a system prompt using an LLM."""
+    try:
+        # Default to Anthropic if available, otherwise try Hugging Face
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        hf_token = os.environ.get("HUGGINGFACEHUB_API_TOKEN")
+        
+        prompt_text = enhance_request.keyword
+        options = {}
+        
+        if enhance_request.provider == ProviderEnum.ANTHROPIC and api_key:
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+            
+            system_prompt = "You are an expert prompt engineer. Your goal is to improve the user's system prompt for an LLM agent."
+            user_message = f"""
+            Please provide 3 improved versions of the following system prompt:
+            "{prompt_text}"
+            
+            Return your response in JSON format with keys: "Concise", "Detailed", "Creative".
+            Values should be the actual prompt strings. Do not include any other text.
+            """
+            
+            message = client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=1000,
+                temperature=0.7,
+                system=system_prompt,
+                messages=[
+                    {"role": "user", "content": user_message}
+                ]
+            )
+            
+            content = message.content[0].text
+            
+        elif enhance_request.provider == ProviderEnum.HUGGINGFACE and hf_token:
+            from huggingface_hub import InferenceClient
+            client = InferenceClient(token=hf_token)
+            
+            system_prompt = "You are an expert prompt engineer. Your goal is to improve the user's system prompt for an LLM agent."
+            user_message = f"""
+            Please provide 3 improved versions of the following system prompt:
+            "{prompt_text}"
+            
+            Return your response in JSON format with keys: "Concise", "Detailed", "Creative".
+            Values should be the actual prompt strings. Do not include any other text.
+            """
+            
+            # Use a good instruction model
+            response = client.text_generation(
+                prompt=f"<|system|>{system_prompt}</s><|user|>{user_message}</s><|assistant|>",
+                model="meta-llama/Meta-Llama-3-8B-Instruct",
+                max_new_tokens=1000,
+                temperature=0.7
+            )
+            content = response
+            
+        else:
+            # Fallback if no valid provider/key found
+            if not api_key and not hf_token:
+                raise HTTPException(status_code=500, detail="No API key found for Anthropic or Hugging Face.")
+            
+            # Attempt to use whatever key is available
+            raise HTTPException(status_code=400, detail=f"Provider {enhance_request.provider} configured but API key missing or invalid request.")
+
+        # Parse response
+        import json
+        import re
+        
+        # Try to find JSON in content
+        json_match = re.search(r'\{.*\}', content, re.DOTALL)
+        if json_match:
+            try:
+                json_str = json_match.group(0)
+                options = json.loads(json_str)
+            except json.JSONDecodeError:
+                # Fallback manual parsing or single option
+                options = {"Enhanced": content[:500] + "..."}
+        else:
+            options = {"Enhanced": content}
+            
+        return {
+            "status": "success",
+            "options": options
+        }
+        
+    except Exception as e:
+        print(f"Enhance prompt error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to enhance prompt: {str(e)}")
 
 @app.get("/health")
 @app.get("/healthz")
