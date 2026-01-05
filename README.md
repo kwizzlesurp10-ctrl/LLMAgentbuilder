@@ -274,9 +274,66 @@ The FastAPI backend provides:
 
 - `POST /api/generate` - Generate a new agent (rate limited: 20/min)
 - `POST /api/execute` - Execute agent code in sandbox (rate limited: 10/min)
+- `POST /api/test-agent` - Test a built agent (rate limited: 10/min)
 - `GET /health` - Health check endpoint
 - `GET /healthz` - Kubernetes health check
+- `GET /api/health/db` - Database health check
 - `GET /metrics` - Prometheus metrics
+
+**Workflow Management Endpoints:**
+- `POST /api/workflows` - Create a new workflow
+- `GET /api/workflows/{id}` - Get workflow state
+- `PUT /api/workflows/{id}` - Update workflow state
+- `GET /api/workflows/{id}/history` - Get workflow history
+- `GET /api/workflows` - List workflows (with filtering)
+
+### Database Architecture
+
+LLM Agent Builder includes a production-ready database layer with:
+
+- **Connection Pooling**: SQLAlchemy-based connection pool for efficient resource management
+- **Thread-Safe Operations**: Concurrent access support for FastAPI
+- **Transaction Management**: ACID compliance with automatic rollback on errors
+- **Schema Migrations**: Automatic database schema updates
+- **Health Monitoring**: Pool statistics and health checks
+
+#### Database Features
+
+- **Article Storage**: Store scraped web articles
+- **Alert Management**: Keyword detection alerts
+- **Workflow State Tracking**: Track multi-step workflow execution (NEW)
+- **Agent Versioning**: Version control for generated agents (NEW)
+
+#### Configuration
+
+Database settings in `config/default.yaml`:
+
+```yaml
+database:
+  workflow:
+    path: workflow.db
+    pool_size: 10
+    max_overflow: 20
+    pool_timeout: 30
+    pool_recycle: 3600
+```
+
+#### Usage Example
+
+```python
+from llm_agent_builder.database import get_db, DatabaseManager
+from fastapi import Depends
+
+@app.post("/api/workflows")
+async def create_workflow(
+    workflow_name: str,
+    db: DatabaseManager = Depends(get_db)
+):
+    workflow_id = db.create_workflow(workflow_name)
+    return {"id": workflow_id}
+```
+
+For detailed database documentation, see [docs/DATABASE.md](docs/DATABASE.md).
 
 ## 🧪 Testing
 
