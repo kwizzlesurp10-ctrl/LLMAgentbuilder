@@ -6,14 +6,14 @@ class AgentBuilder:
     def __init__(self, template_path: Optional[str] = None):
         if template_path and os.path.isfile(template_path):
             template_dir = os.path.dirname(template_path)
-            template_name = os.path.basename(template_path)
             self.env = Environment(loader=FileSystemLoader(template_dir))
-            self.template = self.env.get_template(template_name)
         else:
             if template_path is None:
                 template_path = os.path.join(os.path.dirname(__file__), 'templates')
             self.env = Environment(loader=FileSystemLoader(template_path))
-            self.template = self.env.get_template('agent_template.py.j2')
+        
+        # Cache for loaded templates
+        self._template_cache = {}
 
     def build_agent(
         self, 
@@ -52,8 +52,11 @@ class AgentBuilder:
             template_name = "agent_template.py.j2"  # Use same template structure, will need Google Gemini client
         else:
             template_name = "agent_template.py.j2"
-            
-        template = self.env.get_template(template_name)
+        
+        # Use cached template if available
+        if template_name not in self._template_cache:
+            self._template_cache[template_name] = self.env.get_template(template_name)
+        template = self._template_cache[template_name]
         
         return template.render(
             agent_name=agent_name,

@@ -16,23 +16,9 @@ from slowapi.errors import RateLimitExceeded
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 # Add the parent directory to sys.path to import llm_agent_builder
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-import sys
-# Force reload to ensure we get the local version
-if 'llm_agent_builder' in sys.modules:
-    del sys.modules['llm_agent_builder']
-if 'llm_agent_builder.agent_engine' in sys.modules:
-    del sys.modules['llm_agent_builder.agent_engine']
-
-print(f"DEBUG: sys.path: {sys.path}")
-try:
-    import llm_agent_builder
-    print(f"DEBUG: llm_agent_builder: {llm_agent_builder.__file__}")
-    import llm_agent_builder.agent_engine
-    print("DEBUG: agent_engine imported successfully")
-except Exception as e:
-    print(f"DEBUG: Import error: {e}")
+_parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
 
 from llm_agent_builder.agent_builder import AgentBuilder
 from llm_agent_builder.agent_engine import AgentEngine
