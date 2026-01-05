@@ -52,6 +52,7 @@ class GenerateRequest(BaseModel):
                 raise ValueError(f"Model {v} not supported for Anthropic")
         elif provider == ProviderEnum.HUGGINGFACE:
             allowed = [
+                "HuggingFaceH4/zephyr-7b-beta",
                 "meta-llama/Meta-Llama-3-8B-Instruct",
                 "mistralai/Mistral-7B-Instruct-v0.3"
             ]

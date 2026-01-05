@@ -55,15 +55,20 @@ function App() {
       setGeneratedPath(null); // No server path anymore
 
       // Trigger download
-      const blob = new Blob([data.code], { type: 'text/x-python' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = data.filename;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Trigger download inside a nested try-catch to prevent UI errors if it fails
+      try {
+        const blob = new Blob([data.code], { type: 'text/x-python' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } catch (downloadErr) {
+        console.warn('Auto-download failed:', downloadErr);
+      }
 
     } catch (err) {
       setError(err.message);
