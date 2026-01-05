@@ -15,6 +15,7 @@ if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
 from llm_agent_builder.agent_builder import AgentBuilder
+from llm_agent_builder.config import get_config_manager, Provider
 from dotenv import load_dotenv
 
 def get_input(prompt: str, default: str, validator=None) -> str:
@@ -63,9 +64,15 @@ def test_agent(agent_path: str, task: Optional[str] = None) -> None:
         print(f"Error: Agent file '{agent_path}' not found.")
         sys.exit(1)
     
-    api_key = os.environ.get("GOOGLE_GEMINI_KEY") or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
+    # Use ConfigManager to get API key
+    config_manager = get_config_manager()
+    api_key = config_manager.get_any_api_key()
+    
     if not api_key:
-        print("Error: API key not found. Please set GOOGLE_GEMINI_KEY or HUGGINGFACEHUB_API_TOKEN.")
+        print("Error: No API key found. Please configure at least one provider:")
+        status = config_manager.get_configuration_status()
+        for provider_name, info in status.items():
+            print(f"  - {info['name']}: Set {info['env_var']}")
         sys.exit(1)
     
     if not task:
@@ -156,6 +163,45 @@ def batch_generate(config_file: str, output_dir: str = "generated_agents", templ
         print(f"Error: {e}")
         sys.exit(1)
 
+def check_config() -> None:
+    """Check and display environment configuration status."""
+    config_manager = get_config_manager()
+    
+    print("\n" + "=" * 70)
+    print("LLM Agent Builder - Configuration Status")
+    print("=" * 70)
+    
+    status = config_manager.get_configuration_status()
+    configured_count = sum(1 for info in status.values() if info['configured'])
+    
+    print(f"\nConfigured Providers: {configured_count}/{len(status)}\n")
+    
+    for provider_name, info in status.items():
+        status_icon = "✓" if info['configured'] else "✗"
+        status_text = "CONFIGURED" if info['configured'] else "NOT CONFIGURED"
+        
+        print(f"{status_icon} {info['name']:20} [{status_text}]")
+        print(f"  Environment Variable: {info['env_var']}")
+        
+        if info['configured'] and info['model']:
+            print(f"  Model: {info['model']}")
+        
+        print()
+    
+    # Validate configuration
+    is_valid, errors = config_manager.validate_configuration()
+    
+    if is_valid:
+        print("✓ Configuration is valid. At least one provider is configured.")
+    else:
+        print("✗ Configuration Error:")
+        for error in errors:
+            print(f"  - {error}")
+        print("\nPlease configure at least one provider to use LLM Agent Builder.")
+        print("See .env.example for configuration template.")
+    
+    print("=" * 70 + "\n")
+
 def main() -> None:
     load_dotenv()
     
@@ -209,6 +255,9 @@ Examples:
     batch_parser.add_argument("config_file", help="Path to JSON configuration file")
     batch_parser.add_argument("--output", default="generated_agents", help="Output directory for generated agents")
     batch_parser.add_argument("--template", help="Path to a custom Jinja2 template file")
+    
+    # Check config subcommand
+    check_parser = subparsers.add_parser("check-config", help="Validate environment configuration")
     
     # Web subcommand
     web_parser = subparsers.add_parser("web", help="Launch the web interface")
@@ -296,7 +345,12 @@ Examples:
                 f.write(agent_code)
             
             print(f"\n✓ Agent '{name}' has been created and saved to '{output_path}'")
-            print("To use the agent, you need to set the GOOGLE_GEMINI_KEY environment variable.")
+            print("\nTo use the agent, ensure you have configured the appropriate API key:")
+            config_manager = get_config_manager()
+            status = config_manager.get_configuration_status()
+            for provider_key, info in status.items():
+                if info['configured']:
+                    print(f"  ✓ {info['name']}: {info['env_var']} is set")
             
         elif args.command == "list":
             list_agents(args.output)
@@ -306,6 +360,9 @@ Examples:
             
         elif args.command == "batch":
             batch_generate(args.config_file, args.output, args.template)
+        
+        elif args.command == "check-config":
+            check_config()
             
         elif args.command == "web":
             run_web_server(args.host, args.port)
