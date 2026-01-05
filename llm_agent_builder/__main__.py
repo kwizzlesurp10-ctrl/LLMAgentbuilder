@@ -18,18 +18,24 @@ def main() -> None:
     - CLI Mode: Launched when CLI commands (generate, list, test, batch) provided
     - Help Mode: Show usage when --help provided
     """
-    # Quick check: if --help/-h is provided with a subcommand, pass to CLI
+    # Quick check: if a CLI command is detected, route directly to CLI
     if len(sys.argv) > 1:
         # Check for CLI commands - route directly to CLI if found
         cli_commands = {"generate", "list", "test", "batch"}
         if sys.argv[1] in cli_commands:
             run_cli()
             return
-        # Check for --cli flag - route to CLI
+        # Check for --cli flag - route to CLI with flag removed
         if "--cli" in sys.argv:
-            # Remove --cli flag and route to CLI
-            sys.argv.remove("--cli")
-            run_cli()
+            # Create a copy of sys.argv without the --cli flag
+            import copy
+            original_argv = sys.argv
+            sys.argv = [arg for arg in sys.argv if arg != "--cli"]
+            try:
+                run_cli()
+            finally:
+                # Restore original argv
+                sys.argv = original_argv
             return
     
     # Parse arguments to determine mode
@@ -53,11 +59,14 @@ def main() -> None:
     
     args = parser.parse_args()
     
-    # If we get here with --serve or no clear command, launch web
+    # If we get here with --serve, launch web
     if args.serve:
         launch_web_server(args.host, args.port)
     else:
-        # Should not reach here, but show help as fallback
+        # This should not be reached in normal operation
+        # If it is, it means an unexpected argument combination was provided
+        import logging
+        logging.warning("Unexpected code path reached in main(). Showing help.")
         show_help()
         sys.exit(0)
 

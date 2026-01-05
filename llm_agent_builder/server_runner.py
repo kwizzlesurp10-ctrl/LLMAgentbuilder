@@ -16,6 +16,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _handle_shutdown(signum, frame):
+    """Signal handler for graceful shutdown."""
+    logger.info("Shutting down server gracefully...")
+    sys.exit(0)
+
+
 def run_web_server(host: str = "0.0.0.0", port: int = 7860, reload: bool = False) -> None:
     """
     Launch the web interface server.
@@ -35,13 +41,9 @@ def run_web_server(host: str = "0.0.0.0", port: int = 7860, reload: bool = False
         logger.info(f"Starting LLM Agent Builder web interface at http://{host}:{port}")
         logger.info("Press CTRL+C to stop the server")
         
-        # Graceful shutdown handler
-        def handle_shutdown(signum, frame):
-            logger.info("Shutting down server gracefully...")
-            sys.exit(0)
-        
-        signal.signal(signal.SIGINT, handle_shutdown)
-        signal.signal(signal.SIGTERM, handle_shutdown)
+        # Register graceful shutdown handlers
+        signal.signal(signal.SIGINT, _handle_shutdown)
+        signal.signal(signal.SIGTERM, _handle_shutdown)
         
         # Run the server
         uvicorn.run(
