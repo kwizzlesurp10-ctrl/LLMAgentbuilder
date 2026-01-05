@@ -28,7 +28,7 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
                 if (value === 'anthropic') {
                     newData.model = 'claude-3-5-sonnet-20241022';
                 } else if (value === 'huggingface') {
-                    newData.model = 'meta-llama/Meta-Llama-3-8B-Instruct';
+                    newData.model = 'HuggingFaceH4/zephyr-7b-beta';
                 }
             }
             return newData;
@@ -218,6 +218,7 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
                             </>
                         ) : (
                             <>
+                                <option value="HuggingFaceH4/zephyr-7b-beta">Zephyr 7B Beta</option>
                                 <option value="meta-llama/Meta-Llama-3-8B-Instruct">Meta Llama 3 8B Instruct</option>
                                 <option value="mistralai/Mistral-7B-Instruct-v0.3">Mistral 7B Instruct v0.3</option>
                             </>

@@ -250,7 +250,7 @@ async def enhance_prompt(request: Request, enhance_request: EnhancePromptRequest
             # Use a good instruction model
             response = client.text_generation(
                 prompt=f"<|system|>{system_prompt}</s><|user|>{user_message}</s><|assistant|>",
-                model="meta-llama/Meta-Llama-3-8B-Instruct",
+                model="HuggingFaceH4/zephyr-7b-beta",
                 max_new_tokens=1000,
                 temperature=0.7
             )

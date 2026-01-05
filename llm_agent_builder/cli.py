@@ -414,7 +414,7 @@ Examples:
                 if provider == "anthropic":
                     default_model = "claude-3-5-sonnet-20241022"
                 elif provider == "huggingface":
-                    default_model = "meta-llama/Meta-Llama-3-8B-Instruct"
+                    default_model = "HuggingFaceH4/zephyr-7b-beta"
                 elif provider == "anytool":
                     default_model = "openrouter/anthropic/claude-sonnet-4.5"
                 else:
