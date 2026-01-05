@@ -152,6 +152,11 @@ walkthrough.md
 implementation_plan.md
 workflow.db
 
+# User-specific configuration files
+config/local.yaml
+config/custom.yaml
+config/*.local.yaml
+
 # Node/Frontend
 frontend/node_modules/
 frontend/dist/

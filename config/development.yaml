@@ -1,0 +1,21 @@
+# Development Environment Configuration
+# Overrides for local development
+
+server:
+  host: "127.0.0.1"
+  port: 7860
+  workers: 2
+  reload: true  # Enable auto-reload for development
+
+providers:
+  google:
+    rate_limit: 50  # Higher rate limit for development
+  anthropic:
+    rate_limit: 50
+
+logging:
+  level: DEBUG  # Verbose logging for development
+  file: null  # Console only for development
+
+environment: development
+enable_rate_limiting: false  # Disable rate limiting for easier testing
