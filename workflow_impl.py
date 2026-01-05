@@ -130,7 +130,7 @@ class Analyzer:
         
         for keyword in self.keywords:
             if keyword in content_lower or keyword in title_lower:
-                # Return original case keyword
+                # Keywords are already lowercase from __init__
                 found_keywords.append(keyword)
         
         return found_keywords
