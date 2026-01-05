@@ -13,7 +13,8 @@ def test_build_agent_content():
     example_task = "Test Task"
     model = "claude-3-test"
     
-    code = builder.build_agent(agent_name, prompt, example_task, model=model)
+    # Test with Anthropic provider since the test expects Anthropic code
+    code = builder.build_agent(agent_name, prompt, example_task, model=model, provider="anthropic")
     
     assert f"class {agent_name}:" in code
     assert f'self.prompt = "{prompt}"' in code

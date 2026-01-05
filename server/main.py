@@ -36,6 +36,7 @@ except Exception as e:
 
 from llm_agent_builder.agent_builder import AgentBuilder
 from llm_agent_builder.agent_engine import AgentEngine
+from llm_agent_builder.config import get_config_manager
 from server.models import GenerateRequest, ProviderEnum, TestAgentRequest
 from server.sandbox import run_in_sandbox
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -58,6 +59,30 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Startup event to validate configuration
+@app.on_event("startup")
+async def startup_event():
+    """Validate configuration on startup."""
+    config_manager = get_config_manager()
+    is_valid, errors = config_manager.validate_configuration()
+    
+    if not is_valid:
+        print("\n" + "=" * 70)
+        print("WARNING: Configuration Issues Detected")
+        print("=" * 70)
+        for error in errors:
+            print(f"  ⚠ {error}")
+        print("\nThe API will start, but some features may not work without proper configuration.")
+        print("See .env.example for configuration template.")
+        print("=" * 70 + "\n")
+    else:
+        print("\n" + "=" * 70)
+        print("✓ Configuration validated successfully")
+        status = config_manager.get_configuration_status()
+        configured = [info['name'] for info in status.values() if info['configured']]
+        print(f"Configured providers: {', '.join(configured)}")
+        print("=" * 70 + "\n")
 
 class ExecuteRequest(BaseModel):
     code: str

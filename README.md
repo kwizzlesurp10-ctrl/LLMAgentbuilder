@@ -11,20 +11,21 @@ app_port: 7860
 
 > **A powerful, production-ready tool for generating custom LLM agents via CLI, web UI, and Hugging Face Spaces**
 
-LLM Agent Builder is a comprehensive Python application that enables developers to quickly scaffold and generate AI agents using Anthropic's Claude models or Hugging Face models. Built with FastAPI, React 19, and modern Python tooling.
+LLM Agent Builder is a comprehensive Python application that enables developers to quickly scaffold and generate AI agents using multiple LLM providers including Google Gemini, Anthropic Claude, HuggingFace, and HuggingChat models. Built with FastAPI, React 19, and modern Python tooling.
 
 ## ✨ Features
 
-- 🚀 **Multi-Provider Support**: Generate agents for Anthropic Claude, HuggingFace, and HuggingChat models
+- 🚀 **Multi-Provider Support**: Generate agents for Google Gemini, Anthropic Claude, OpenAI, HuggingFace, and HuggingChat models
 - 💬 **HuggingChat Integration**: Full support for HuggingChat's open-source conversational models
 - 🔒 **Advanced Safety**: Built-in content moderation and safety checking with HuggingFace models
 - 🌐 **MCP Integration**: Model Context Protocol support for standardized HuggingFace resource access
 - 🎨 **Modern Web UI**: Beautiful React 19 interface with dark/light theme toggle
-- 💻 **Powerful CLI**: Interactive mode, batch generation, agent testing, and listing
+- 💻 **Powerful CLI**: Interactive mode, batch generation, agent testing, and configuration checking
 - 🔧 **Tool Integration**: Built-in support for tool calling and multi-step workflows
 - 🛡️ **Production Ready**: Rate limiting, retry logic, input validation, and sandboxed execution
 - 📦 **Easy Deployment**: Docker-ready for Hugging Face Spaces with one-command deployment
 - 🧪 **Comprehensive Testing**: Full test coverage with pytest and CI/CD
+- ⚙️ **Centralized Configuration**: Unified configuration management for all LLM providers
 
 ## 🚀 Quick Start
 
@@ -64,15 +65,35 @@ LLM Agent Builder is a comprehensive Python application that enables developers 
 
 4. **Set up your API key:**
 
-   Create a `.env` file:
+   Create a `.env` file based on `.env.example`:
 
    ```bash
-   # For Google Gemini
+   cp .env.example .env
+   ```
+
+   Then edit `.env` and configure at least one provider:
+
+   ```bash
+   # For Google Gemini (Recommended)
    GOOGLE_GEMINI_KEY="your-google-gemini-api-key-here"
+   GOOGLE_GEMINI_MODEL="gemini-1.5-pro"
+
+   # For Anthropic Claude (Optional)
+   ANTHROPIC_API_KEY="your-anthropic-api-key-here"
    ANTHROPIC_MODEL="claude-3-5-sonnet-20241022"
 
-   # For Hugging Face (optional)
+   # For OpenAI (Optional)
+   OPENAI_API_KEY="your-openai-api-key-here"
+   OPENAI_MODEL="gpt-4"
+
+   # For HuggingFace / HuggingChat (Optional)
    HUGGINGFACEHUB_API_TOKEN="your-hf-token-here"
+   ```
+
+   **Check your configuration:**
+
+   ```bash
+   llm-agent-builder check-config
    ```
 
 ## 📖 Usage
