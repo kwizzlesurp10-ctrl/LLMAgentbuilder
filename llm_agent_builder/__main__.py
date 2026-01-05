@@ -112,7 +112,7 @@ For more information, visit:
 
 def launch_web_server(host: str, port: int) -> None:
     """Launch the web interface."""
-    from llm_agent_builder.server_runner import run_web_server
+    from .server_runner import run_web_server
     print("Launching web interface...")
     run_web_server(host=host, port=port)
 
@@ -120,7 +120,7 @@ def launch_web_server(host: str, port: int) -> None:
 def run_cli() -> None:
     """Run CLI mode by delegating to the CLI module."""
     # Import and run the CLI
-    from llm_agent_builder.cli import main as cli_main
+    from .cli import main as cli_main
     cli_main()
 
 
