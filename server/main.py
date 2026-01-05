@@ -1,10 +1,11 @@
 import os
 import sys
 import time
-from typing import Dict
+import yaml
+from typing import Dict, Optional
 from pathlib import Path
 import subprocess
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -36,9 +37,17 @@ except Exception as e:
 
 from llm_agent_builder.agent_builder import AgentBuilder
 from llm_agent_builder.agent_engine import AgentEngine
+from llm_agent_builder.database import initialize_database, get_db, get_pool_manager, DatabaseManager
 from server.models import GenerateRequest, ProviderEnum, TestAgentRequest
 from server.sandbox import run_in_sandbox
 from prometheus_fastapi_instrumentator import Instrumentator
+
+# Load configuration
+config_path = Path(__file__).parent.parent / "config" / "default.yaml"
+config = {}
+if config_path.exists():
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
 
 app = FastAPI(title="LLM Agent Builder API", version="1.0.0")
 
@@ -190,10 +199,172 @@ async def test_agent(request: Request, test_request: TestAgentRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Test execution error: {str(e)}")
 
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database pool on startup."""
+    try:
+        # Get database config
+        db_config = config.get("database", {}).get("workflow", {})
+        db_path = db_config.get("path", "workflow.db")
+        pool_size = db_config.get("pool_size", 10)
+        max_overflow = db_config.get("max_overflow", 20)
+        pool_timeout = db_config.get("pool_timeout", 30)
+        pool_recycle = db_config.get("pool_recycle", 3600)
+        
+        # Initialize the global database
+        initialize_database(
+            db_path=db_path,
+            pool_size=pool_size,
+            max_overflow=max_overflow,
+            pool_timeout=pool_timeout,
+            pool_recycle=pool_recycle,
+        )
+        print(f"✓ Database pool initialized: {db_path}")
+    except Exception as e:
+        print(f"⚠ Warning: Failed to initialize database pool: {e}")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Close database pools on shutdown."""
+    try:
+        pool_manager = get_pool_manager()
+        pool_manager.close_all()
+        print("✓ Database pools closed")
+    except Exception as e:
+        print(f"⚠ Warning: Error closing database pools: {e}")
+
+
 @app.get("/health")
 @app.get("/healthz")
 async def health_check():
     return {"status": "ok", "version": "1.1.0"}
+
+
+@app.get("/api/health/db")
+async def health_check_db():
+    """Database health check endpoint."""
+    try:
+        pool_manager = get_pool_manager()
+        health_status = pool_manager.health_check_all()
+        
+        # Get pool statistics
+        all_healthy = all(health_status.values())
+        
+        return {
+            "status": "healthy" if all_healthy else "degraded",
+            "databases": health_status,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Database health check failed: {str(e)}")
+
+
+# Workflow API models
+class WorkflowCreate(BaseModel):
+    workflow_name: str
+    initial_data: Optional[Dict] = None
+
+
+class WorkflowUpdate(BaseModel):
+    status: Optional[str] = None
+    current_step: Optional[str] = None
+    data: Optional[Dict] = None
+    error_message: Optional[str] = None
+
+
+@app.post("/api/workflows")
+@limiter.limit("20/minute")
+async def create_workflow(
+    request: Request,
+    workflow: WorkflowCreate,
+    db: DatabaseManager = Depends(get_db)
+):
+    """Create a new workflow."""
+    try:
+        workflow_id = db.create_workflow(
+            workflow_name=workflow.workflow_name,
+            initial_data=workflow.initial_data
+        )
+        return {"id": workflow_id, "status": "created"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create workflow: {str(e)}")
+
+
+@app.get("/api/workflows/{workflow_id}")
+async def get_workflow(workflow_id: str, db: DatabaseManager = Depends(get_db)):
+    """Get workflow state by ID."""
+    try:
+        workflow = db.get_workflow_state(workflow_id)
+        if workflow is None:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        return workflow
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get workflow: {str(e)}")
+
+
+@app.put("/api/workflows/{workflow_id}")
+@limiter.limit("20/minute")
+async def update_workflow(
+    request: Request,
+    workflow_id: str,
+    update: WorkflowUpdate,
+    db: DatabaseManager = Depends(get_db)
+):
+    """Update workflow state."""
+    try:
+        # Check if workflow exists
+        workflow = db.get_workflow_state(workflow_id)
+        if workflow is None:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        
+        # Update workflow
+        db.update_workflow_state(
+            workflow_id=workflow_id,
+            status=update.status,
+            current_step=update.current_step,
+            data=update.data,
+            error_message=update.error_message,
+        )
+        
+        return {"status": "updated"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update workflow: {str(e)}")
+
+
+@app.get("/api/workflows/{workflow_id}/history")
+async def get_workflow_history(workflow_id: str, db: DatabaseManager = Depends(get_db)):
+    """Get workflow history."""
+    try:
+        # Check if workflow exists
+        workflow = db.get_workflow_state(workflow_id)
+        if workflow is None:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        
+        history = db.get_workflow_history(workflow_id)
+        return {"workflow_id": workflow_id, "history": history}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get workflow history: {str(e)}")
+
+
+@app.get("/api/workflows")
+async def list_workflows(
+    status: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+    db: DatabaseManager = Depends(get_db)
+):
+    """List workflows with optional filtering."""
+    try:
+        workflows = db.list_workflows(status=status, limit=limit, offset=offset)
+        return {"workflows": workflows, "count": len(workflows)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list workflows: {str(e)}")
 
 # Serve React App
 # Mount the static files from the frontend build directory

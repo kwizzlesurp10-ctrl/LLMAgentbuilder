@@ -5,58 +5,40 @@ import uuid
 from datetime import datetime
 from typing import Dict, List, Optional
 
+# Import the new database infrastructure
+from llm_agent_builder.database import DatabaseManager, get_pool_manager
+
 DB_PATH = "workflow.db"
 
-class DatabaseManager:
+
+class DatabaseManagerLegacy:
+    """Legacy DatabaseManager wrapper for backward compatibility."""
+    
     def __init__(self, db_path: str = DB_PATH):
-        self.conn = sqlite3.connect(db_path)
-        self.conn.row_factory = sqlite3.Row
-        self.create_tables()
-
+        # Get a pool from the pool manager
+        pool_manager = get_pool_manager()
+        pool = pool_manager.get_pool(db_path=db_path, pool_size=5, max_overflow=10)
+        
+        # Use the new DatabaseManager
+        self._db_manager = DatabaseManager(pool)
+    
     def create_tables(self):
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS articles (
-                id TEXT PRIMARY KEY,
-                url TEXT,
-                title TEXT,
-
-                
-                content TEXT,
-                created_at TEXT
-            )
-        ''')
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS alerts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT,
-                message TEXT,
-                source_url TEXT,
-                created_at TEXT
-            )
-        ''')
-        self.conn.commit()
-
+        """Tables are created automatically via migrations."""
+        pass
+    
     def insert_article(self, article: Dict[str, str]):
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            INSERT OR IGNORE INTO articles (id, url, title, content, created_at)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (article['id'], article['url'], article['title'], article['content'], article['created_at']))
-        self.conn.commit()
+        """Insert an article using the new manager."""
+        self._db_manager.insert_article(article)
         print(f"Stored article: {article['title']}")
-
+    
     def insert_alert(self, title: str, message: str, source_url: str):
-        cursor = self.conn.cursor()
-        cursor.execute('''
-            INSERT INTO alerts (title, message, source_url, created_at)
-            VALUES (?, ?, ?, ?)
-        ''', (title, message, source_url, datetime.now().isoformat()))
-        self.conn.commit()
+        """Insert an alert using the new manager."""
+        self._db_manager.insert_alert(title, message, source_url)
         print(f"ALERT: {title} - {message}")
-
+    
     def close(self):
-        self.conn.close()
+        """Close is handled by the pool manager."""
+        pass
 
 class Scraper:
     def scrape(self, url: str) -> Optional[Dict[str, str]]:
@@ -102,7 +84,7 @@ class Analyzer:
 
 class WorkflowController:
     def __init__(self):
-        self.db = DatabaseManager()
+        self.db = DatabaseManagerLegacy()
         self.scraper = Scraper()
         self.analyzer = Analyzer(keywords=["Artificial Intelligence", "LLM", "Python", "Agent"])
 

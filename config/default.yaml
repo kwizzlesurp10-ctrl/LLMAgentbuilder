@@ -1,0 +1,39 @@
+# LLM Agent Builder Configuration
+
+# Database configuration
+database:
+  # Main workflow database
+  workflow:
+    path: workflow.db
+    pool_size: 10
+    max_overflow: 20
+    pool_timeout: 30
+    pool_recycle: 3600  # Recycle connections after 1 hour
+  
+  # Agent versions database
+  agent_versions:
+    path: agent_versions.db
+    pool_size: 5
+    max_overflow: 10
+    pool_timeout: 30
+    pool_recycle: 3600
+
+# Server configuration
+server:
+  host: 0.0.0.0
+  port: 7860
+  workers: 4
+  reload: false
+
+# Rate limiting
+rate_limit:
+  generate: "20/minute"
+  execute: "10/minute"
+  test_agent: "10/minute"
+
+# Security
+security:
+  max_code_size: 102400  # 100KB
+  max_prompt_length: 10000
+  max_task_length: 5000
+  execution_timeout: 60
