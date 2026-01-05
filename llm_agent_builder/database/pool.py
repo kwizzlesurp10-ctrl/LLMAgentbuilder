@@ -54,6 +54,8 @@ class DatabasePool:
         # Enable WAL mode for better concurrent access
         @event.listens_for(Engine, "connect")
         def set_sqlite_pragma(dbapi_conn, connection_record):
+            # Set row factory
+            dbapi_conn.row_factory = sqlite3.Row
             cursor = dbapi_conn.cursor()
             cursor.execute("PRAGMA journal_mode=WAL")
             cursor.execute("PRAGMA synchronous=NORMAL")
@@ -79,31 +81,32 @@ class DatabasePool:
         Raises:
             TimeoutError: If unable to acquire connection within pool_timeout
         """
-        conn = None
+        raw_conn = None
         try:
             # Get raw connection from pool
-            conn = self.engine.raw_connection()
+            raw_conn = self.engine.raw_connection()
+            
+            # Get underlying DBAPI connection
+            dbapi_conn = raw_conn.driver_connection
+            
             with self._lock:
                 self._stats["connections_acquired"] += 1
             
-            # Enable row factory for dict-like access
-            conn.row_factory = sqlite3.Row
-            
-            yield conn
+            yield dbapi_conn
             
         except Exception as e:
             with self._lock:
                 self._stats["errors"] += 1
-            if conn:
+            if raw_conn:
                 try:
-                    conn.rollback()
+                    raw_conn.rollback()
                 except:
                     pass
             raise
         finally:
-            if conn:
+            if raw_conn:
                 try:
-                    conn.close()  # Returns connection to pool
+                    raw_conn.close()  # Returns connection to pool
                     with self._lock:
                         self._stats["connections_released"] += 1
                 except Exception as e:
