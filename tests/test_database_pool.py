@@ -18,7 +18,7 @@ def temp_db():
     # Cleanup
     try:
         os.unlink(db_path)
-    except:
+    except (OSError, FileNotFoundError):
         pass
 
 
@@ -150,7 +150,7 @@ def test_pool_manager_multiple_databases():
         try:
             os.unlink(db1)
             os.unlink(db2)
-        except:
+        except (OSError, FileNotFoundError):
             pass
 
 

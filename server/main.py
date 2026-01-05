@@ -46,8 +46,15 @@ from prometheus_fastapi_instrumentator import Instrumentator
 config_path = Path(__file__).parent.parent / "config" / "default.yaml"
 config = {}
 if config_path.exists():
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
+    try:
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        print(f"⚠ Warning: Failed to load config file: {e}")
+        print("   Using default configuration")
+    except Exception as e:
+        print(f"⚠ Warning: Error reading config file: {e}")
+        print("   Using default configuration")
 
 app = FastAPI(title="LLM Agent Builder API", version="1.0.0")
 

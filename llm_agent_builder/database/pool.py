@@ -9,6 +9,30 @@ from sqlalchemy import create_engine, pool, event
 from sqlalchemy.engine import Engine
 
 
+# Module-level flag to ensure event listener is only registered once
+_event_listener_registered = False
+_event_listener_lock = threading.Lock()
+
+
+def _register_sqlite_pragmas():
+    """Register SQLite pragma event listener (only once per process)."""
+    global _event_listener_registered
+    
+    with _event_listener_lock:
+        if not _event_listener_registered:
+            @event.listens_for(Engine, "connect")
+            def set_sqlite_pragma(dbapi_conn, connection_record):
+                # Set row factory
+                dbapi_conn.row_factory = sqlite3.Row
+                cursor = dbapi_conn.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.execute("PRAGMA synchronous=NORMAL")
+                cursor.execute("PRAGMA busy_timeout=5000")
+                cursor.close()
+            
+            _event_listener_registered = True
+
+
 class DatabasePool:
     """Thread-safe database connection pool using SQLAlchemy QueuePool."""
     
@@ -39,6 +63,9 @@ class DatabasePool:
         # Ensure directory exists
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         
+        # Register event listener (only once per process)
+        _register_sqlite_pragmas()
+        
         # Create SQLAlchemy engine with QueuePool
         self.engine = create_engine(
             f"sqlite:///{self.db_path}",
@@ -50,17 +77,6 @@ class DatabasePool:
             connect_args={"check_same_thread": False},
             echo=False,
         )
-        
-        # Enable WAL mode for better concurrent access
-        @event.listens_for(Engine, "connect")
-        def set_sqlite_pragma(dbapi_conn, connection_record):
-            # Set row factory
-            dbapi_conn.row_factory = sqlite3.Row
-            cursor = dbapi_conn.cursor()
-            cursor.execute("PRAGMA journal_mode=WAL")
-            cursor.execute("PRAGMA synchronous=NORMAL")
-            cursor.execute("PRAGMA busy_timeout=5000")
-            cursor.close()
         
         self._lock = threading.Lock()
         self._stats: Dict[str, Any] = {
