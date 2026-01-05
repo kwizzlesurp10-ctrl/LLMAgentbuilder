@@ -3,6 +3,11 @@ Tests for the unified entry point system.
 """
 import subprocess
 import sys
+from pathlib import Path
+
+
+# Get the project root directory dynamically
+PROJECT_ROOT = Path(__file__).parent.parent
 
 
 def test_main_help():
@@ -11,7 +16,7 @@ def test_main_help():
         [sys.executable, "main.py", "--help"],
         capture_output=True,
         text=True,
-        cwd="/home/runner/work/LLMAgentbuilder/LLMAgentbuilder"
+        cwd=str(PROJECT_ROOT)
     )
     assert result.returncode == 0
     assert "llm-agent-builder" in result.stdout
@@ -23,7 +28,7 @@ def test_main_routes_to_cli_list():
         [sys.executable, "main.py", "list"],
         capture_output=True,
         text=True,
-        cwd="/home/runner/work/LLMAgentbuilder/LLMAgentbuilder"
+        cwd=str(PROJECT_ROOT)
     )
     assert result.returncode == 0
     assert "agent" in result.stdout.lower()
@@ -35,7 +40,7 @@ def test_cli_generate_help():
         [sys.executable, "main.py", "generate", "--help"],
         capture_output=True,
         text=True,
-        cwd="/home/runner/work/LLMAgentbuilder/LLMAgentbuilder"
+        cwd=str(PROJECT_ROOT)
     )
     assert result.returncode == 0
     assert "Name of the agent" in result.stdout
@@ -47,7 +52,7 @@ def test_cli_module_list():
         [sys.executable, "-m", "llm_agent_builder.cli", "list"],
         capture_output=True,
         text=True,
-        cwd="/home/runner/work/LLMAgentbuilder/LLMAgentbuilder"
+        cwd=str(PROJECT_ROOT)
     )
     assert result.returncode == 0
     assert "agent" in result.stdout.lower()
@@ -59,7 +64,7 @@ def test_cli_with_flag():
         [sys.executable, "main.py", "--cli", "list"],
         capture_output=True,
         text=True,
-        cwd="/home/runner/work/LLMAgentbuilder/LLMAgentbuilder"
+        cwd=str(PROJECT_ROOT)
     )
     assert result.returncode == 0
     assert "agent" in result.stdout.lower()

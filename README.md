@@ -122,10 +122,6 @@ The web interface provides:
 
 Use CLI commands for automation and batch operations:
 
-#### CLI Mode
-
-Use CLI commands for automation and batch operations:
-
 **Generate an Agent:**
 
 Interactive Mode:
