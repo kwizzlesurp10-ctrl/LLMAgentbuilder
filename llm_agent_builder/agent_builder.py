@@ -62,6 +62,8 @@ class AgentBuilder:
             template_name = "agent_template_hf.py.j2"
         elif provider == "openai":
             template_name = "agent_template_openai.py.j2"
+        elif provider == "anytool":
+            template_name = "agent_template_anytool.py.j2"
         else:
             if provider == "swarm":  # Fallback if specific provider name used
                 template_name = "swarm_template.py.j2"

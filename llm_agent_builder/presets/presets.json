@@ -1,0 +1,68 @@
+[
+  {
+    "id": "codereviewer-v1",
+    "name": "CodeReviewer",
+    "version": "1.0.0",
+    "description": "An agent that reviews code and searches for models/datasets on Hugging Face.",
+    "config": {
+      "provider": "huggingface",
+      "model": "meta-llama/Meta-Llama-3-8B-Instruct",
+      "system_prompt": "mad coder",
+      "example_task": "Build simple python scripts",
+      "tools": [
+        {
+          "name": "search_models",
+          "description": "Searches for models on the Hugging Face Hub.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {"type": "string", "description": "Search query"},
+              "limit": {"type": "integer", "description": "Number of results", "default": 5}
+            },
+            "required": ["query"]
+          }
+        },
+        {
+          "name": "search_datasets",
+          "description": "Searches for datasets on the Hugging Face Hub.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {"type": "string", "description": "Search query"},
+              "limit": {"type": "integer", "description": "Number of results", "default": 5}
+            },
+            "required": ["query"]
+          }
+        },
+        {
+          "name": "get_model_documentation",
+          "description": "Retrieves the Model Card (documentation) for a specific model.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "model_id": {"type": "string", "description": "The model ID (e.g. 'gpt2')"}
+            },
+            "required": ["model_id"]
+          }
+        }
+      ]
+    },
+    "created_at": "2026-01-05T00:00:00Z",
+    "updated_at": "2026-01-05T00:00:00Z"
+  },
+  {
+    "id": "dataanalyst-v1",
+    "name": "DataAnalyst",
+    "version": "1.0.0",
+    "description": "A basic data analysis agent.",
+    "config": {
+      "provider": "huggingface",
+      "model": "meta-llama/Meta-Llama-3-8B-Instruct",
+      "system_prompt": "You are a data analyst.",
+      "example_task": "Analyze data.",
+      "tools": []
+    },
+    "created_at": "2026-01-05T00:00:00Z",
+    "updated_at": "2026-01-05T00:00:00Z"
+  }
+]

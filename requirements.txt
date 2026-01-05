@@ -1,14 +1,43 @@
+
 anthropic
-Jinja2
-python-dotenv
+anthropic>=0.71.0
+# AnyTool core dependencies
+# atomacos>=3.2.0; sys_platform == 'darwin'
+chromadb
+colorama
 fastapi
-uvicorn
-pydantic
-prometheus-fastapi-instrumentator
+flask>=3.1.0
+gradio_client
 huggingface_hub
+Jinja2
+jsonschema>=4.25.0
+# # Linux-specific dependencies (local server)
+litellm>=1.70.0
+# Local server dependencies (cross-platform)
+# # macOS-specific dependencies (local server)
+mcp>=1.0.0
+# numpy>=1.24.0; sys_platform == 'linux'
+openai>=1.0.0
+pillow>=12.0.0
+prometheus-fastapi-instrumentator
+# pyatspi>=2.38.0; sys_platform == 'linux'
+pyautogui>=0.9.54
+pydantic
+pydantic>=2.12.0
+# PyGetWindow>=0.0.9; sys_platform == 'win32'
+# pyobjc-core>=12.0; sys_platform == 'darwin'
+# pyobjc-framework-cocoa>=12.0; sys_platform == 'darwin'
+# pyobjc-framework-quartz>=12.0; sys_platform == 'darwin'
+python-dotenv
+python-dotenv>=1.0.0
+# python-xlib>=0.33; sys_platform == 'linux'
+# pywin32>=306; sys_platform == 'win32'
+# pywinauto>=0.6.8; sys_platform == 'win32'
+requests
+requests>=2.32.0
+sentence-transformers
+gradio
 slowapi
 tenacity
-requests
-gradio_client
-chromadb
-sentence-transformersgradio
+uvicorn
+# # Windows-specific dependencies (local server)

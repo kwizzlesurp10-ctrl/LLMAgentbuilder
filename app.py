@@ -66,8 +66,8 @@ with gr.Blocks(title="LLM Agent Builder") as demo:
         name_input = gr.Textbox(label="Agent Name", value="MyAgent")
         prompt_input = gr.Textbox(label="System Prompt", lines=5, value="You are a helpful assistant.")
         task_input = gr.Textbox(label="Example Task", lines=2, value="Say hello.")
-        model_input = gr.Dropdown(choices=["claude-3-5-sonnet-20241022", "meta-llama/Meta-Llama-3-8B-Instruct"], label="Model", value="claude-3-5-sonnet-20241022")
-        provider_input = gr.Dropdown(choices=["anthropic", "huggingface"], label="Provider", value="anthropic")
+        model_input = gr.Dropdown(choices=["claude-3-5-sonnet-20241022", "meta-llama/Meta-Llama-3-8B-Instruct", "openrouter/anthropic/claude-sonnet-4.5"], label="Model", value="claude-3-5-sonnet-20241022")
+        provider_input = gr.Dropdown(choices=["anthropic", "huggingface", "anytool"], label="Provider", value="anthropic")
         
         generate_btn = gr.Button("Generate Agent Code")
         code_output = gr.Code(label="Generated Python Code", language="python")

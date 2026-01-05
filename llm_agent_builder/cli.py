@@ -17,6 +17,7 @@ if str(_project_root) not in sys.path:
 from llm_agent_builder.agent_builder import AgentBuilder
 from llm_agent_builder.image_generator import ImageGenerator
 from llm_agent_builder.huggingface_utils import deploy_to_hf
+from llm_agent_builder.presets import PresetManager
 from dotenv import load_dotenv
 
 def get_input(prompt: str, default: str, validator=None) -> str:
@@ -202,15 +203,25 @@ Examples:
     gen_parser.add_argument("--task", default="Write a Python function that calculates the factorial of a number.", help="Example task for the agent")
     gen_parser.add_argument("--output", default="generated_agents", help="Output directory for the generated agent")
     gen_parser.add_argument("--model", help="Model to use (overrides .env)")
-    gen_parser.add_argument("--provider", default="anthropic", choices=["anthropic", "huggingface"], help="LLM Provider to use")
+    gen_parser.add_argument("--provider", default="anthropic", choices=["anthropic", "huggingface", "anytool"], help="LLM Provider to use")
     gen_parser.add_argument("--template", help="Path to a custom Jinja2 template file")
     gen_parser.add_argument("--interactive", action="store_true", help="Run in interactive mode")
     gen_parser.add_argument("--db-path", help="Path to a SQLite database for the agent to use")
     gen_parser.add_argument("--docs-path", help="Path to a directory of documents for RAG (Knowledge Base)")
+    gen_parser.add_argument("--preset", help="Name or ID of a preset to use as a template")
     
     # List subcommand
     list_parser = subparsers.add_parser("list", help="List all generated agents")
     list_parser.add_argument("--output", default="generated_agents", help="Output directory to search")
+    
+    # Presets subcommand
+    presets_parser = subparsers.add_parser("presets", help="Manage agent presets")
+    presets_subparsers = presets_parser.add_subparsers(dest="preset_command", help="Preset commands")
+    
+    presets_list_parser = presets_subparsers.add_parser("list", help="List available presets")
+    
+    presets_show_parser = presets_subparsers.add_parser("show", help="Show details of a preset")
+    presets_show_parser.add_argument("name", help="Name or ID of the preset")
     
     # Test subcommand
     test_parser = subparsers.add_parser("test", help="Test a generated agent")
@@ -249,7 +260,45 @@ Examples:
         args.port = 7860
     
     try:
-        if args.command == "generate":
+        if args.command == "presets":
+            manager = PresetManager()
+            if args.preset_command == "list":
+                presets = manager.list_presets()
+                if not presets:
+                    print("No presets found.")
+                else:
+                    print(f"\nFound {len(presets)} preset(s):")
+                    print("-" * 60)
+                    for preset in presets:
+                        print(f"  • {preset.name} (ID: {preset.id}) - {preset.description}")
+                    print("-" * 60)
+            elif args.preset_command == "show":
+                preset = manager.get_preset(args.name)
+                if not preset:
+                    print(f"Error: Preset '{args.name}' not found.")
+                    sys.exit(1)
+                print(f"\nPreset: {preset.name}")
+                print(f"ID: {preset.id}")
+                print(f"Version: {preset.version}")
+                print(f"Description: {preset.description}")
+                print(f"Provider: {preset.config.provider}")
+                print(f"Model: {preset.config.model}")
+                print("-" * 60)
+                print("System Prompt:")
+                print(preset.config.system_prompt)
+                print("-" * 60)
+                print("Example Task:")
+                print(preset.config.example_task)
+                if preset.config.tools:
+                    print("-" * 60)
+                    print(f"Tools ({len(preset.config.tools)}):")
+                    for tool in preset.config.tools:
+                        print(f"  - {tool.get('name')}: {tool.get('description')}")
+                print("-" * 60)
+            else:
+                presets_parser.print_help()
+
+        elif args.command == "generate":
             # Interactive mode: triggered by --interactive flag or when no arguments provided
             # Check if user provided any arguments after the script name:
             # - len(sys.argv) == 1: no command provided (handled above, sets args.interactive=True)
@@ -260,28 +309,88 @@ Examples:
             
             if args.interactive or no_args_provided:
                 print("Starting interactive agent generation...")
-                name = get_input("Agent Name", args.name, validator=validate_agent_name)
-                prompt = get_input("System Prompt", args.prompt)
-                task = get_input("Example Task", args.task)
-                output = get_input("Output Directory", args.output)
-                default_model = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
-                model = get_input("Model", default_model)
-                provider = get_input("Provider (anthropic/huggingface)", args.provider)
-                template = get_input("Custom Template Path (optional)", "")
-                db_path = get_input("SQLite Database Path (optional)", "")
-                docs_path = get_input("Knowledge Base Path (optional)", "")
+                # Offer presets in interactive mode
+                use_preset = get_input("Use a preset template? (Y/n)", "n")
+                if use_preset.lower() == 'y':
+                    manager = PresetManager()
+                    presets = manager.list_presets()
+                    if not presets:
+                        print("No presets available.")
+                        preset_name = None
+                    else:
+                        print("\nAvailable Presets:")
+                        for i, p in enumerate(presets, 1):
+                            print(f"{i}. {p.name} - {p.description}")
+                        
+                        choice = get_input("Select preset number", "1")
+                        try:
+                            preset = presets[int(choice)-1]
+                            preset_name = preset.id
+                        except (ValueError, IndexError):
+                            print("Invalid selection.")
+                            preset_name = None
+                else:
+                    preset_name = None
+
+                if preset_name:
+                    manager = PresetManager()
+                    preset = manager.get_preset(preset_name)
+                    if not preset:
+                        print(f"Error: Preset '{preset_name}' not found.")
+                        sys.exit(1)
+                    
+                    print(f"Loaded preset: {preset.name}")
+                    name = get_input("Agent Name", preset.name, validator=validate_agent_name)
+                    prompt = get_input("System Prompt", preset.config.system_prompt)
+                    task = get_input("Example Task", preset.config.example_task)
+                    output = get_input("Output Directory", args.output)
+                    model = get_input("Model", preset.config.model)
+                    provider = get_input("Provider (anthropic/huggingface/anytool)", preset.config.provider)
+                    template = get_input("Custom Template Path (optional)", "")
+                    db_path = get_input("SQLite Database Path (optional)", "")
+                    docs_path = get_input("Knowledge Base Path (optional)", "")
+                    tools = preset.config.tools
+                else:
+                    name = get_input("Agent Name", args.name, validator=validate_agent_name)
+                    prompt = get_input("System Prompt", args.prompt)
+                    task = get_input("Example Task", args.task)
+                    output = get_input("Output Directory", args.output)
+                    default_model = os.environ.get("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
+                    model = get_input("Model", default_model)
+                    provider = get_input("Provider (anthropic/huggingface/anytool)", args.provider)
+                    template = get_input("Custom Template Path (optional)", "")
+                    db_path = get_input("SQLite Database Path (optional)", "")
+                    docs_path = get_input("Knowledge Base Path (optional)", "")
+                    tools = None
                 
                 # Validate provider
-                if provider not in ["anthropic", "huggingface"]:
-                    print(f"Error: Invalid provider '{provider}'. Must be 'anthropic' or 'huggingface'.")
+                if provider not in ["anthropic", "huggingface", "anytool"]:
+                    print(f"Error: Invalid provider '{provider}'. Must be 'anthropic', 'huggingface', or 'anytool'.")
                     sys.exit(1)
             else:
-                name = args.name
-                prompt = args.prompt
-                task = args.task
+                tools = None
+                if args.preset:
+                    manager = PresetManager()
+                    preset = manager.get_preset(args.preset)
+                    if not preset:
+                        print(f"Error: Preset '{args.preset}' not found.")
+                        sys.exit(1)
+                    print(f"Using preset: {preset.name}")
+                    # Use preset values if args are default or empty, otherwise override
+                    name = args.name if args.name != "MyAwesomeAgent" else preset.name
+                    prompt = args.prompt if args.prompt != "You are a helpful assistant that specializes in writing Python code." else preset.config.system_prompt
+                    task = args.task if args.task != "Write a Python function that calculates the factorial of a number." else preset.config.example_task
+                    model = args.model if args.model else preset.config.model
+                    provider = args.provider if args.provider != "anthropic" else preset.config.provider
+                    tools = preset.config.tools
+                else:
+                    name = args.name
+                    prompt = args.prompt
+                    task = args.task
+                    model = args.model
+                    provider = args.provider
+                
                 output = args.output
-                model = args.model
-                provider = args.provider
                 template = args.template
                 db_path = args.db_path
                 docs_path = args.docs_path
@@ -301,7 +410,18 @@ Examples:
             builder = AgentBuilder(template_path=template if template else None)
             
             # Generate the agent code
-            default_model = model or ("claude-3-5-sonnet-20241022" if provider == "anthropic" else "meta-llama/Meta-Llama-3-8B-Instruct")
+            if not model:
+                if provider == "anthropic":
+                    default_model = "claude-3-5-sonnet-20241022"
+                elif provider == "huggingface":
+                    default_model = "meta-llama/Meta-Llama-3-8B-Instruct"
+                elif provider == "anytool":
+                    default_model = "openrouter/anthropic/claude-sonnet-4.5"
+                else:
+                    default_model = "claude-3-5-sonnet-20241022"
+            else:
+                default_model = model
+
             agent_code = builder.build_agent(
                 agent_name=name, 
                 prompt=prompt, 
@@ -309,7 +429,8 @@ Examples:
                 model=default_model,
                 provider=provider,
                 db_path=db_path if db_path else None,
-                docs_path=docs_path if docs_path else None
+                docs_path=docs_path if docs_path else None,
+                tools=tools
             )
             
             # Define the output path for the generated agent

@@ -134,9 +134,22 @@ llm-agent-builder list --output ./my_agents
 llm-agent-builder test generated_agents/codereviewer.py --task "Review this code: def add(a, b): return a + b"
 ```
 
-#### Batch Generation
+### Agent Presets
+You can use predefined templates (presets) to generate agents with specific configurations:
 
-Create a JSON config file (`agents.json`):
+```bash
+# List available presets
+llm-agent-builder presets list
+
+# Show details of a specific preset
+llm-agent-builder presets show CodeReviewer
+
+# Generate an agent from a preset
+llm-agent-builder generate --preset CodeReviewer --output my_agents
+```
+
+### Batch Generation
+Generate multiple agents at once using a JSON configuration file:
 
 ```json
 [

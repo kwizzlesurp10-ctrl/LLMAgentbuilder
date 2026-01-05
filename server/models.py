@@ -7,6 +7,7 @@ class ProviderEnum(str, Enum):
     ANTHROPIC = "anthropic"
     HUGGINGFACE = "huggingface"
     OPENAI = "openai"
+    ANYTOOL = "anytool"
 
 
 class GenerateRequest(BaseModel):
@@ -66,6 +67,14 @@ class GenerateRequest(BaseModel):
             ]
             if v not in allowed:
                 raise ValueError(f"Model {v} not supported for OpenAI")
+        elif provider == ProviderEnum.ANYTOOL:
+            allowed = [
+                "openrouter/anthropic/claude-sonnet-4.5",
+                "claude-3-5-sonnet-20241022"
+            ]
+            if v not in allowed:
+                # For anytool, we might want to be more flexible, but let's allow these for now
+                pass
         return v
 
 
