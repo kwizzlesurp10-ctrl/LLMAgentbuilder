@@ -2,21 +2,24 @@ import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Bot, Wrench, Database, BookOpen } from 'lucide-react';
 
-const NodeWrapper = ({ children, title, icon: Icon, color }) => (
-    <div className={`px-4 py-2 shadow-md rounded-md bg-white border-2 border-[${color}] min-w-[200px]`}>
-        <div className="flex items-center">
-            <div className={`rounded-full w-8 h-8 flex justify-center items-center bg-[${color}]/10`}>
-                <Icon size={20} className={`text-[${color}]`} />
+const NodeWrapper = ({ children, title, icon, color }) => {
+    const Icon = icon;
+    return (
+        <div className={`px-4 py-2 shadow-md rounded-md bg-white border-2 border-[${color}] min-w-[200px]`}>
+            <div className="flex items-center">
+                <div className={`rounded-full w-8 h-8 flex justify-center items-center bg-[${color}]/10`}>
+                    <Icon size={20} className={`text-[${color}]`} />
+                </div>
+                <div className="ml-2">
+                    <div className="text-lg font-bold text-gray-700">{title}</div>
+                </div>
             </div>
-            <div className="ml-2">
-                <div className="text-lg font-bold text-gray-700">{title}</div>
+            <div className="mt-2 text-gray-500 text-sm">
+                {children}
             </div>
         </div>
-        <div className="mt-2 text-gray-500 text-sm">
-            {children}
-        </div>
-    </div>
-);
+    );
+};
 
 export const AgentNode = memo(({ data, isConnectable }) => {
     return (

@@ -37,7 +37,7 @@ const initialNodes = [
 const FlowBuilder = () => {
     // ... (Hooks same as before)
     // We need to wrap the onChange handlers to update state
-    const handleNodeChange = (id, value, field) => {
+    const handleNodeChange = useCallback((id, value, field) => {
         setNodes((nds) =>
             nds.map((node) => {
                 if (node.id === id) {
@@ -52,7 +52,7 @@ const FlowBuilder = () => {
                 return node;
             })
         );
-    };
+    }, [setNodes]);
 
     // Hydrate initial nodes with the handler
     const [nodes, setNodes, onNodesChange] = useNodesState(
@@ -272,7 +272,7 @@ const FlowBuilder = () => {
 
             setNodes((nds) => nds.concat(newNode));
         },
-        [nodes, setNodes]
+        [nodes, setNodes, handleNodeChange]
     );
 
     return (
