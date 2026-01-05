@@ -13,6 +13,7 @@ All checks should pass ✅
 ### Step 2: Generate Your First Agent
 
 **Option A: Multi-Step Workflow Agent**
+
 ```bash
 llm-agent-builder generate \
   --name "MyResearchAgent" \
@@ -24,6 +25,7 @@ llm-agent-builder generate \
 ```
 
 **Option B: Agent with Tools**
+
 ```bash
 llm-agent-builder generate \
   --name "MyToolAgent" \
@@ -35,6 +37,7 @@ llm-agent-builder generate \
 ```
 
 **Option C: Advanced Agent (Both Features)**
+
 ```bash
 llm-agent-builder generate \
   --name "MyAdvancedAgent" \
@@ -70,6 +73,7 @@ print(result)
 ## 📋 Common Use Cases
 
 ### Research & Analysis
+
 ```bash
 llm-agent-builder generate \
   --name "ResearchAgent" \
@@ -79,6 +83,7 @@ llm-agent-builder generate \
 ```
 
 ### Code Review
+
 ```bash
 llm-agent-builder generate \
   --name "CodeReviewer" \
@@ -89,6 +94,7 @@ llm-agent-builder generate \
 ```
 
 ### Data Analysis
+
 ```bash
 llm-agent-builder generate \
   --name "DataAnalyst" \
@@ -99,19 +105,22 @@ llm-agent-builder generate \
 
 ## 🎯 When to Use Each Feature
 
-### Use Multi-Step Workflows When:
+### Use Multi-Step Workflows When
+
 - ✅ Task requires iterative refinement
 - ✅ Complex problem-solving needed
 - ✅ Research or analysis tasks
 - ✅ Code generation that needs refinement
 
-### Use Tool Integration When:
+### Use Tool Integration When
+
 - ✅ Need external data (web search, APIs)
 - ✅ Mathematical calculations
 - ✅ Database queries
 - ✅ Custom functionality required
 
-### Use Both When:
+### Use Both When
+
 - ✅ Complex tasks requiring both iteration and external tools
 - ✅ Production-ready agents
 - ✅ Maximum capability needed
@@ -153,22 +162,25 @@ See `examples/tools_example.json` for complete examples.
 ## 📚 More Resources
 
 - **Full Guide**: [MULTI_STEP_AND_TOOLS_GUIDE.md](MULTI_STEP_AND_TOOLS_GUIDE.md)
-- **CLI Examples**: [examples/CLI_EXAMPLES.md](examples/CLI_EXAMPLES.md)
+- **CLI Examples**: [examples/CLI_EXAMPLES.md](../examples/CLI_EXAMPLES.md)
 - **Setup Summary**: [SETUP_SUMMARY.md](SETUP_SUMMARY.md)
 - **Demo Script**: `python demo_multi_step_tools.py`
 
 ## 🐛 Troubleshooting
 
 **Agent doesn't use tools?**
+
 - Check tool descriptions are clear
 - Verify provider supports tool calling
 - Ensure tool schema is valid JSON
 
 **Multi-step runs too many steps?**
+
 - Reduce `max_steps` parameter
 - Improve completion detection in prompt
 
 **Need help?**
+
 - Check [MULTI_STEP_AND_TOOLS_GUIDE.md](MULTI_STEP_AND_TOOLS_GUIDE.md)
 - Review examples in `examples/`
 - Run `python setup_multi_step_tools.py` to verify setup

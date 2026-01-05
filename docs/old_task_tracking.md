@@ -23,4 +23,3 @@
   - [x] Frontend: "Enhance" button and Selection UI
   - [x] Integration: LLM Prompt Engineering for Enhancements
 - [x] Push to GitHub
-- [x] Fix Git Pre-commit Hook issues <!-- id: 7 -->
