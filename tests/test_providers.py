@@ -6,7 +6,6 @@ from llm_agent_builder.providers import (
     register_provider,
     get_provider
 )
-from llm_agent_builder.providers.base import LLMProvider as BaseLLMProvider
 
 
 def test_provider_registry_contains_all_providers():
@@ -61,7 +60,7 @@ def test_get_provider_helper():
 def test_register_provider_decorator():
     """Test the register_provider decorator."""
     @register_provider("test_provider")
-    class TestProvider(BaseLLMProvider):
+    class TestProvider(LLMProvider):
         def get_template_name(self) -> str:
             return "test_template.py.j2"
         
@@ -85,8 +84,8 @@ def test_register_provider_decorator():
     assert isinstance(provider, TestProvider)
     assert provider.get_template_name() == "test_template.py.j2"
     
-    # Clean up
-    del ProviderRegistry._providers["test_provider"]
+    # Clean up using unregister method
+    ProviderRegistry.unregister("test_provider")
 
 
 def test_provider_interface_methods():

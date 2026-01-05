@@ -19,7 +19,7 @@ class GenerateRequest(BaseModel):
     name: str
     prompt: str
     task: str
-    provider: str = "google"  # Changed from ProviderEnum to str for flexibility
+    provider: str = "google"  # String allows dynamic provider registration without code changes
     model: str
     stream: bool = False
     db_path: Optional[str] = None

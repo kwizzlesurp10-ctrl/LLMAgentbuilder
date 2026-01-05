@@ -43,6 +43,11 @@ class ProviderRegistry:
         cls._providers[name.lower()] = provider_class
     
     @classmethod
+    def unregister(cls, name: str) -> None:
+        """Unregister a provider by name."""
+        cls._providers.pop(name.lower(), None)
+    
+    @classmethod
     def get(cls, name: str) -> LLMProvider:
         """Get a provider instance by name."""
         provider_class = cls._providers.get(name.lower())
