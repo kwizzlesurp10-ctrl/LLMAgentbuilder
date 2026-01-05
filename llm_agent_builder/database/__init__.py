@@ -1,5 +1,4 @@
 """Database package for LLM Agent Builder."""
-from contextlib import contextmanager
 from typing import Optional, Generator
 
 from .pool import DatabasePool, PoolManager, get_pool_manager
@@ -72,8 +71,7 @@ def get_global_db() -> Optional[DatabaseManager]:
     return _global_db_manager
 
 
-@contextmanager
-def get_db(
+async def get_db(
     db_path: str = "workflow.db",
     pool_size: int = 10,
     max_overflow: int = 20,
