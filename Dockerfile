@@ -69,4 +69,5 @@ LABEL maintainer="LLMAgentBuilder Team" \
 
 # Run the application
 # Host 0.0.0.0 is required for Docker and HF Spaces
-CMD ["uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Use unified entry point with --serve flag
+CMD ["python", "main.py", "--serve"]

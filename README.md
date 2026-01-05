@@ -77,41 +77,67 @@ LLM Agent Builder is a comprehensive Python application that enables developers 
 
 ## 📖 Usage
 
-### Web Interface (Default)
+### Quick Start
 
-The easiest way to use LLM Agent Builder is via the web interface.
-
-1. **Launch the application:**
-
-   ```bash
-   python main.py
-   # or
-   llm-agent-builder
-   ```
-
-2. **Access the UI:**
-
-   Open your browser to `http://localhost:7860`.
-
-   The web interface allows you to:
-   - Generate agents using a simple form
-   - Preview and copy generated code
-   - Test agents directly in the browser
-   - Switch between dark and light themes
-
-### Command Line Interface
-
-You can still use the CLI for scripting or if you prefer the terminal.
-
-#### Generate an Agent
-
-**Interactive Mode:**
+The easiest way to use LLM Agent Builder is to simply run it without any arguments - it will launch the web interface by default:
 
 ```bash
-llm-agent-builder generate --interactive
+python main.py
+# or if installed via pip:
+llm-agent-builder
 ```
 
-**Command-Line Mode:**
+This will start the web interface at `http://localhost:7860`.
+
+### Modes of Operation
+
+LLM Agent Builder supports two modes:
+
+1. **Web Mode (Default)**: User-friendly web interface
+2. **CLI Mode**: Command-line interface for automation and scripting
+
+#### Web Mode
+
+Launch the web interface:
+
+```bash
+# Default (launches web interface)
+llm-agent-builder
+
+# Explicit web mode with custom host/port
+llm-agent-builder --serve --host 127.0.0.1 --port 8080
+
+# Or use the dedicated serve command
+llm-agent-builder-serve
+```
+
+The web interface provides:
+- Interactive agent generation form
+- Live code preview
+- Direct agent testing in browser
+- Copy-to-clipboard functionality
+- Dark/light theme toggle
+
+#### CLI Mode
+
+Use CLI commands for automation and batch operations:
+
+#### CLI Mode
+
+Use CLI commands for automation and batch operations:
+
+**Generate an Agent:**
+
+Interactive Mode:
+
+```bash
+# Force CLI mode for interactive generation
+llm-agent-builder --cli generate
+# or use the dedicated CLI command
+llm-agent-builder-cli generate
+```
+
+Command-Line Mode:
 
 ```bash
 llm-agent-builder generate \
@@ -166,7 +192,29 @@ Then run:
 llm-agent-builder batch agents.json
 ```
 
-### Web Interface
+### Available Commands
+
+LLM Agent Builder provides three entry point commands:
+
+1. **`llm-agent-builder`** - Unified entry point (defaults to web mode)
+   - Run without args: Launches web interface
+   - Run with CLI commands: Routes to CLI mode
+   - Use `--serve` to explicitly launch web mode
+   - Use `--cli` to force CLI mode
+
+2. **`llm-agent-builder-cli`** - Direct CLI access
+   - Always uses CLI mode
+   - Useful for scripts and automation
+
+3. **`llm-agent-builder-serve`** - Direct web server access
+   - Always launches web interface
+   - Useful for server deployments
+
+### Web Interface (Deprecated Direct Access)
+
+**Note:** The standalone backend/frontend setup is now unified. Simply run `llm-agent-builder` to access the web interface.
+
+For development with separate frontend/backend:
 
 1. **Start the Backend Server:**
 
@@ -187,6 +235,23 @@ llm-agent-builder batch agents.json
    ```
 
    Open your browser to `http://localhost:5173`.
+
+### Docker Deployment
+
+The Docker image now uses the unified entry point and defaults to web mode:
+
+```bash
+# Build the image
+docker build -t llm-agent-builder .
+
+# Run with default web mode
+docker run -p 7860:7860 -e GOOGLE_GEMINI_KEY="your-key" llm-agent-builder
+
+# Run with CLI mode (example: list agents)
+docker run llm-agent-builder python main.py --cli list
+```
+
+The container exposes port 7860 for the web interface.
 
 ### Features in Web UI
 

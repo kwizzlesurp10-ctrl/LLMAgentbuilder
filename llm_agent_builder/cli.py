@@ -210,21 +210,14 @@ Examples:
     batch_parser.add_argument("--output", default="generated_agents", help="Output directory for generated agents")
     batch_parser.add_argument("--template", help="Path to a custom Jinja2 template file")
     
-    # Web subcommand
-    web_parser = subparsers.add_parser("web", help="Launch the web interface")
-    web_parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
-    web_parser.add_argument("--port", type=int, default=7860, help="Port to bind to")
-    
     args = parser.parse_args()
     
-    # Handle no command (default to generate in interactive mode)
-    # Handle no command (default to web interface)
+    # Handle no command (default to interactive generate mode)
     if not args.command:
-        print("No command provided. Launching web interface...")
-        args.command = "web"
-        # Set default values for web command since they weren't parsed
-        args.host = "0.0.0.0"
-        args.port = 7860
+        print("No command provided. Defaulting to interactive generate mode...")
+        print("Use 'llm-agent-builder --help' for more options.\n")
+        args.command = "generate"
+        args.interactive = True
     
     try:
         if args.command == "generate":
@@ -307,9 +300,6 @@ Examples:
         elif args.command == "batch":
             batch_generate(args.config_file, args.output, args.template)
             
-        elif args.command == "web":
-            run_web_server(args.host, args.port)
-            
     except KeyboardInterrupt:
         print("\n\nOperation cancelled by user.")
         sys.exit(1)
@@ -317,18 +307,6 @@ Examples:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
-def run_web_server(host: str, port: int) -> None:
-    """Run the web interface server."""
-    try:
-        import uvicorn
-        print(f"Starting web interface at http://{host}:{port}")
-        uvicorn.run("server.main:app", host=host, port=port, reload=False)
-    except ImportError:
-        print("Error: uvicorn is not installed. Please install it with 'pip install uvicorn'.")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Error starting web server: {e}")
-        sys.exit(1)
 
 if __name__ == "__main__":
     main()
