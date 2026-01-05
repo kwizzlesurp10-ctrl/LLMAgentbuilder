@@ -113,10 +113,14 @@ class AgentEngine:
         if not agent_path.exists():
             raise FileNotFoundError(f"Agent file not found: {agent_path}")
         
+        # Validate path before loading
+        if not agent_path.exists() or not agent_path.is_file():
+             raise FileNotFoundError(f"Agent file not found or invalid: {agent_path}")
+
         # Load the module dynamically
         spec = importlib.util.spec_from_file_location("agent_module", agent_path)
         if spec is None or spec.loader is None:
-            raise ImportError(f"Could not load agent from {agent_path}")
+            raise ImportError(f"Could not load agent spec from {agent_path}")
         
         module = importlib.util.module_from_spec(spec)
         
@@ -125,6 +129,8 @@ class AgentEngine:
         try:
             sys.path.insert(0, str(agent_path.parent))
             spec.loader.exec_module(module)
+        except Exception as e:
+            raise ImportError(f"Failed to execute agent module {agent_path}: {e}")
         finally:
             sys.path[:] = original_path
         

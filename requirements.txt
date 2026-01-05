@@ -11,4 +11,4 @@ tenacity
 requests
 gradio_client
 chromadb
-sentence-transformers
+sentence-transformersgradio
