@@ -156,6 +156,60 @@ def batch_generate(config_file: str, output_dir: str = "generated_agents", templ
         print(f"Error: {e}")
         sys.exit(1)
 
+def handle_config_command(args) -> None:
+    """Handle configuration management commands."""
+    from llm_agent_builder.config import get_config_manager, load_config
+    
+    if not hasattr(args, 'config_action') or not args.config_action:
+        print("Error: No configuration action specified.")
+        print("Available actions: show, validate, generate")
+        sys.exit(1)
+    
+    try:
+        if args.config_action == "show":
+            # Show current configuration
+            config_manager = get_config_manager()
+            
+            if args.format == "yaml":
+                print(config_manager.to_yaml())
+            else:
+                print(config_manager.to_json())
+        
+        elif args.config_action == "validate":
+            # Validate a configuration file
+            config_manager = get_config_manager()
+            is_valid, error = config_manager.validate_config_file(args.file)
+            
+            if is_valid:
+                print(f"✓ Configuration file '{args.file}' is valid.")
+            else:
+                print(f"✗ Configuration file '{args.file}' is invalid:")
+                print(f"  {error}")
+                sys.exit(1)
+        
+        elif args.config_action == "generate":
+            # Generate a default configuration file
+            config = load_config()
+            
+            output_path = Path(args.output)
+            
+            # Ensure parent directory exists
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            if args.format == "yaml":
+                import yaml
+                with open(output_path, 'w') as f:
+                    yaml.dump(config.model_dump(), f, default_flow_style=False, sort_keys=False)
+            else:
+                with open(output_path, 'w') as f:
+                    json.dump(config.model_dump(), f, indent=2)
+            
+            print(f"✓ Generated configuration file: {output_path}")
+    
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
 def main() -> None:
     load_dotenv()
     
@@ -178,8 +232,16 @@ Examples:
 
   # Batch generate from config file
   llm-agent-builder batch agents.json
+  
+  # Configuration management
+  llm-agent-builder config show
+  llm-agent-builder config validate --file config/production.yaml
+  llm-agent-builder config generate
         """
     )
+    
+    # Global arguments
+    parser.add_argument("--config", help="Path to configuration file", dest="config_file")
     
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
     
@@ -215,7 +277,28 @@ Examples:
     web_parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
     web_parser.add_argument("--port", type=int, default=7860, help="Port to bind to")
     
+    # Config subcommand
+    config_parser = subparsers.add_parser("config", help="Configuration management")
+    config_subparsers = config_parser.add_subparsers(dest="config_action", help="Configuration actions")
+    
+    # config show
+    show_parser = config_subparsers.add_parser("show", help="Display current configuration")
+    show_parser.add_argument("--format", choices=["yaml", "json"], default="yaml", help="Output format")
+    
+    # config validate
+    validate_parser = config_subparsers.add_parser("validate", help="Validate configuration file")
+    validate_parser.add_argument("--file", required=True, help="Configuration file to validate")
+    
+    # config generate
+    generate_config_parser = config_subparsers.add_parser("generate", help="Generate default configuration file")
+    generate_config_parser.add_argument("--output", default="config.yaml", help="Output file path")
+    generate_config_parser.add_argument("--format", choices=["yaml", "json"], default="yaml", help="Output format")
+    
     args = parser.parse_args()
+    
+    # Load configuration if --config flag is provided
+    if hasattr(args, 'config_file') and args.config_file:
+        os.environ["CONFIG_FILE"] = args.config_file
     
     # Handle no command (default to generate in interactive mode)
     # Handle no command (default to web interface)
@@ -227,7 +310,9 @@ Examples:
         args.port = 7860
     
     try:
-        if args.command == "generate":
+        if args.command == "config":
+            handle_config_command(args)
+        elif args.command == "generate":
             # Interactive mode: triggered by --interactive flag or when no arguments provided
             # Check if user provided any arguments after the script name:
             # - len(sys.argv) == 1: no command provided (handled above, sets args.interactive=True)
@@ -321,8 +406,18 @@ def run_web_server(host: str, port: int) -> None:
     """Run the web interface server."""
     try:
         import uvicorn
-        print(f"Starting web interface at http://{host}:{port}")
-        uvicorn.run("server.main:app", host=host, port=port, reload=False)
+        from llm_agent_builder.config import get_config
+        
+        # Get config for server settings
+        config = get_config()
+        
+        # Use CLI args if provided, otherwise use config
+        final_host = host if host != "0.0.0.0" else config.server.host
+        final_port = port if port != 7860 else config.server.port
+        
+        print(f"Starting web interface at http://{final_host}:{final_port}")
+        print(f"Environment: {config.environment}")
+        uvicorn.run("server.main:app", host=final_host, port=final_port, reload=config.server.reload)
     except ImportError:
         print("Error: uvicorn is not installed. Please install it with 'pip install uvicorn'.")
         sys.exit(1)

@@ -4,7 +4,7 @@ import time
 from typing import Dict
 from pathlib import Path
 import subprocess
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -36,19 +36,31 @@ except Exception as e:
 
 from llm_agent_builder.agent_builder import AgentBuilder
 from llm_agent_builder.agent_engine import AgentEngine
+from llm_agent_builder.config import get_config, AppConfig
 from server.models import GenerateRequest, ProviderEnum, TestAgentRequest
 from server.sandbox import run_in_sandbox
 from prometheus_fastapi_instrumentator import Instrumentator
 
+# Load configuration
+app_config: AppConfig = get_config()
+print(f"✓ Configuration loaded: environment={app_config.environment}, port={app_config.server.port}")
+
 app = FastAPI(title="LLM Agent Builder API", version="1.0.0")
 
-# Rate limiting
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# Rate limiting (use config)
+if app_config.enable_rate_limiting:
+    limiter = Limiter(key_func=get_remote_address)
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    print("✓ Rate limiting enabled")
+else:
+    limiter = None
+    print("✗ Rate limiting disabled")
 
-# Instrumentator
-Instrumentator().instrument(app).expose(app)
+# Instrumentator (use config)
+if app_config.enable_metrics:
+    Instrumentator().instrument(app).expose(app)
+    print("✓ Metrics enabled")
 
 # Configure CORS
 app.add_middleware(
@@ -62,6 +74,15 @@ app.add_middleware(
 class ExecuteRequest(BaseModel):
     code: str
     task: str
+
+# Helper to apply rate limit only if enabled
+def rate_limit_if_enabled(limit: str):
+    """Decorator to apply rate limiting only if enabled in config."""
+    def decorator(func):
+        if app_config.enable_rate_limiting and limiter:
+            return limiter.limit(limit)(func)
+        return func
+    return decorator
 
 @retry(
     stop=stop_after_attempt(3),
@@ -82,7 +103,7 @@ def _generate_agent_with_retry(request: GenerateRequest) -> str:
     )
 
 @app.post("/api/execute")
-@limiter.limit("10/minute")
+@rate_limit_if_enabled("10/minute")
 async def execute_agent(request: Request, execute_request: ExecuteRequest):
     """Execute agent code in a sandboxed environment."""
     try:
@@ -102,7 +123,7 @@ async def execute_agent(request: Request, execute_request: ExecuteRequest):
         raise HTTPException(status_code=500, detail=f"Execution error: {str(e)}")
 
 @app.post("/api/generate")
-@limiter.limit("20/minute")
+@rate_limit_if_enabled("20/minute")
 async def generate_agent(request: Request, generate_request: GenerateRequest):
     """Generate a new agent with retry logic and rate limiting."""
     try:
@@ -129,7 +150,7 @@ async def generate_agent(request: Request, generate_request: GenerateRequest):
         raise HTTPException(status_code=500, detail=f"Generation error: {str(e)}")
 
 @app.post("/api/test-agent")
-@limiter.limit("10/minute")
+@rate_limit_if_enabled("10/minute")
 async def test_agent(request: Request, test_request: TestAgentRequest):
     """
     Test a built agent using the AgentEngine.
@@ -189,6 +210,27 @@ async def test_agent(request: Request, test_request: TestAgentRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Test execution error: {str(e)}")
+
+@app.get("/api/config")
+async def get_config_info():
+    """
+    Get current configuration (sanitized).
+    Note: API keys and sensitive info are not exposed.
+    """
+    config_dict = app_config.model_dump()
+    
+    # Remove sensitive data
+    if "providers" in config_dict:
+        for provider in config_dict["providers"].values():
+            if isinstance(provider, dict) and "api_key_env" in provider:
+                # Just show that it's configured, don't show the actual env var name
+                provider["api_key_configured"] = bool(os.environ.get(provider["api_key_env"]))
+                provider.pop("api_key_env", None)
+    
+    return {
+        "status": "ok",
+        "config": config_dict
+    }
 
 @app.get("/health")
 @app.get("/healthz")
