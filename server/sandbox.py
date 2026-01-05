@@ -2,6 +2,9 @@ import subprocess
 import tempfile
 import os
 import sys
+from dotenv import load_dotenv
+
+load_dotenv()
 
 import types
 from typing import Optional, Any
@@ -52,7 +55,8 @@ def run_in_sandbox(code: str, task: str, timeout: int = 30, memory_limit_mb: int
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            preexec_fn=set_limits
+            preexec_fn=set_limits,
+            env=os.environ.copy()
         )
 
         try:
