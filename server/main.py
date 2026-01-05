@@ -36,8 +36,9 @@ except Exception as e:
 
 from llm_agent_builder.agent_builder import AgentBuilder
 from llm_agent_builder.agent_engine import AgentEngine
-from server.models import GenerateRequest, ProviderEnum, TestAgentRequest, EnhancePromptRequest
+from server.models import GenerateRequest, ProviderEnum, TestAgentRequest, EnhancePromptRequest, GenerateAvatarRequest
 from server.sandbox import run_in_sandbox
+from llm_agent_builder.image_generator import ImageGenerator
 from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI(title="LLM Agent Builder API", version="1.0.0")
@@ -287,6 +288,43 @@ async def enhance_prompt(request: Request, enhance_request: EnhancePromptRequest
     except Exception as e:
         print(f"Enhance prompt error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to enhance prompt: {str(e)}")
+
+
+@app.post("/api/generate-avatar")
+@limiter.limit("5/minute")
+async def generate_avatar(request: Request, avatar_request: GenerateAvatarRequest):
+    """Generate an agent avatar using Hugging Face Spaces."""
+    try:
+        generator = ImageGenerator()
+        
+        # Create a temporary output path
+        import tempfile
+        import base64
+        
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
+            output_path = temp_file.name
+            
+        generated_path = generator.generate_avatar(avatar_request.prompt, output_path)
+        
+        if not generated_path or not os.path.exists(generated_path):
+             raise HTTPException(status_code=500, detail="Failed to generate avatar image")
+             
+        # Read the image and convert to base64
+        with open(generated_path, "rb") as img_file:
+            img_data = img_file.read()
+            base64_img = base64.b64encode(img_data).decode('utf-8')
+            
+        # Clean up
+        os.remove(generated_path)
+        
+        return {
+            "status": "success",
+            "image": f"data:image/png;base64,{base64_img}"
+        }
+        
+    except Exception as e:
+        print(f"Avatar generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate avatar: {str(e)}")
 
 @app.get("/health")
 @app.get("/healthz")

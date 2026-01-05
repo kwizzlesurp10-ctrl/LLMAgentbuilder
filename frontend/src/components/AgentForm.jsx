@@ -12,6 +12,8 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
     const [isExecuting, setIsExecuting] = useState(false);
     const [enhanceLoading, setEnhanceLoading] = useState(false);
     const [enhancementOptions, setEnhancementOptions] = useState(null);
+    const [avatarUrl, setAvatarUrl] = useState(null);
+    const [avatarLoading, setAvatarLoading] = useState(false);
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -96,21 +98,84 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
         }
     };
 
+    const handleGenerateAvatar = async () => {
+        if (!formData.prompt) {
+            alert("Please enter a system prompt first.");
+            return;
+        }
+        setAvatarLoading(true);
+        try {
+            const apiUrl = import.meta.env.DEV ? 'http://localhost:8000/api/generate-avatar' : '/api/generate-avatar';
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: `Avatar for an AI agent named ${formData.name}. ${formData.prompt}`,
+                    name: formData.name
+                }),
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                setAvatarUrl(data.image);
+            } else {
+                alert(`Error: ${data.detail}`);
+            }
+        } catch (error) {
+            alert(`Error generating avatar: ${error.message}`);
+        } finally {
+            setAvatarLoading(false);
+        }
+    };
+
     return (
         <div className="card">
             <h2 style={{ marginBottom: '1.5rem' }}>Configure Agent</h2>
             <form onSubmit={handleSubmit}>
                 <div className="form-group">
-                    <label htmlFor="name">Agent Name</label>
-                    <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="e.g., CodeReviewer"
-                        required
-                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label htmlFor="name">Agent Name</label>
+                        <button
+                            type="button"
+                            onClick={handleGenerateAvatar}
+                            disabled={avatarLoading || !formData.prompt}
+                            style={{
+                                padding: '0.25rem 0.5rem',
+                                fontSize: '0.75rem',
+                                background: 'var(--accent-primary)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                opacity: avatarLoading || !formData.prompt ? 0.5 : 1
+                            }}
+                        >
+                            {avatarLoading ? 'Generating...' : '🎨 Gen Avatar'}
+                        </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                        <input
+                            type="text"
+                            id="name"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            placeholder="e.g., CodeReviewer"
+                            required
+                            style={{ flex: 1 }}
+                        />
+                        {avatarUrl && (
+                            <div style={{
+                                width: '50px',
+                                height: '50px',
+                                borderRadius: '50%',
+                                overflow: 'hidden',
+                                border: '2px solid var(--accent-primary)',
+                                flexShrink: 0
+                            }}>
+                                <img src={avatarUrl} alt="Agent Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="form-group">

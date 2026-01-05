@@ -124,3 +124,9 @@ class EnhancePromptRequest(BaseModel):
     provider: ProviderEnum = ProviderEnum.ANTHROPIC
     model: str
 
+
+class GenerateAvatarRequest(BaseModel):
+    """Request model for generating an agent avatar."""
+    prompt: str
+    name: Optional[str] = "avatar"
+
