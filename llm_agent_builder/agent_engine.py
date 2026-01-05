@@ -8,6 +8,7 @@ environments.
 
 import os
 import sys
+import time
 import importlib.util
 import tempfile
 import re
@@ -218,7 +219,6 @@ class AgentEngine:
             provided)
         :return: ExecutionResult with status and output
         """
-        import time
         start_time = time.time()
 
         try:
@@ -302,9 +302,6 @@ class AgentEngine:
         :return: ExecutionResult with status and output
         """
         import subprocess
-        import time
-        import tempfile
-
         start_time = time.time()
         temp_file_created = False
 
@@ -410,8 +407,6 @@ class AgentEngine:
         :param start_time: Start time for execution timing
         :return: ExecutionResult with status and output
         """
-        import time
-
         try:
             # Use Copilot chat completion API
             messages = [
