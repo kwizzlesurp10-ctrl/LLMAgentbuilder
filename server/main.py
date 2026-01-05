@@ -207,8 +207,9 @@ async def enhance_prompt(request: Request, enhance_request: EnhancePromptRequest
     """Enhance a system prompt using an LLM."""
     try:
         # Default to Anthropic if available, otherwise try Hugging Face
+        # Default to Anthropic if available, otherwise try Hugging Face
         api_key = os.environ.get("ANTHROPIC_API_KEY")
-        hf_token = os.environ.get("HUGGINGFACEHUB_API_TOKEN")
+        hf_token = os.environ.get("HUGGINGFACEHUB_API_TOKEN") or os.environ.get("HF_TOKEN")
         
         prompt_text = enhance_request.keyword
         options = {}
@@ -251,14 +252,17 @@ async def enhance_prompt(request: Request, enhance_request: EnhancePromptRequest
             Values should be the actual prompt strings. Do not include any other text.
             """
             
-            # Use a good instruction model
-            response = client.text_generation(
-                prompt=f"<|system|>{system_prompt}</s><|user|>{user_message}</s><|assistant|>",
+            # Use chat_completion for robustness with templates
+            response = client.chat_completion(
                 model="HuggingFaceH4/zephyr-7b-beta",
-                max_new_tokens=1000,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message}
+                ],
+                max_tokens=1000,
                 temperature=0.7
             )
-            content = response
+            content = response.choices[0].message.content
             
         else:
             # Fallback if no valid provider/key found
@@ -290,7 +294,12 @@ async def enhance_prompt(request: Request, enhance_request: EnhancePromptRequest
         }
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"Enhance prompt error: {e}")
+        # Log the specific error details
+        if "401" in str(e):
+             print("Enhance prompt authentication failed. Check API keys.")
         raise HTTPException(status_code=500, detail=f"Failed to enhance prompt: {str(e)}")
 
 
