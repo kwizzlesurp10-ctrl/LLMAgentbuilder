@@ -191,18 +191,25 @@ class ConfigManager:
         def parse_value(val: str) -> Any:
             """Parse string value to appropriate type."""
             try:
-                # Try boolean
+                # Try boolean first (case-insensitive)
                 if val.lower() in ("true", "false"):
                     return val.lower() == "true"
+                
                 # Try integer (including negative)
-                elif val.lstrip("-").isdigit():
+                try:
                     return int(val)
+                except ValueError:
+                    pass
+                
                 # Try float
-                elif "." in val and val.replace(".", "", 1).replace("-", "", 1).isdigit():
+                try:
                     return float(val)
-                else:
-                    return val
-            except (ValueError, AttributeError):
+                except ValueError:
+                    pass
+                
+                # Return as string
+                return val
+            except (AttributeError, TypeError):
                 return val
         
         # Process all environment variables
@@ -269,16 +276,39 @@ class ConfigManager:
         
         # Validate and create AppConfig
         try:
-            # Debug: log config_dict before validation
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(f"Config dict before validation: {config_dict}")
             config = AppConfig(**config_dict)
             logger.info(f"Configuration loaded successfully (environment: {config.environment})")
             return config
         except Exception as e:
             logger.error(f"Error validating configuration: {e}")
-            logger.error(f"Config dict was: {config_dict}")
+            # Log config structure without sensitive values
+            if logger.isEnabledFor(logging.DEBUG):
+                safe_dict = self._sanitize_config_for_logging(config_dict)
+                logger.debug(f"Config dict (sanitized): {safe_dict}")
             raise
+    
+    def _sanitize_config_for_logging(self, config_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Remove sensitive information from config dict for logging."""
+        import copy
+        safe_dict = copy.deepcopy(config_dict)
+        
+        # Remove provider details (could contain sensitive info)
+        if "providers" in safe_dict and isinstance(safe_dict["providers"], dict):
+            for provider, settings in safe_dict["providers"].items():
+                if isinstance(settings, dict):
+                    safe_dict["providers"][provider] = {
+                        k: "***" if k in ("api_key", "api_key_env", "api_secret") else v
+                        for k, v in settings.items()
+                    }
+        
+        # Remove database credentials if any
+        if "database" in safe_dict and isinstance(safe_dict["database"], dict):
+            db_settings = safe_dict["database"]
+            for key in list(db_settings.keys()):
+                if any(word in key.lower() for word in ["password", "secret", "credential"]):
+                    db_settings[key] = "***"
+        
+        return safe_dict
     
     def reload(self, config_path: Optional[Union[str, Path]] = None) -> None:
         """

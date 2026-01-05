@@ -1,7 +1,6 @@
 """Tests for configuration loading."""
 import pytest
 import os
-import tempfile
 from pathlib import Path
 import yaml
 from llm_agent_builder.config import (

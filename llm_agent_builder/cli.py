@@ -296,10 +296,6 @@ Examples:
     
     args = parser.parse_args()
     
-    # Load configuration if --config flag is provided
-    if hasattr(args, 'config_file') and args.config_file:
-        os.environ["CONFIG_FILE"] = args.config_file
-    
     # Handle no command (default to generate in interactive mode)
     # Handle no command (default to web interface)
     if not args.command:
@@ -310,6 +306,11 @@ Examples:
         args.port = 7860
     
     try:
+        # Load configuration early if --config flag is provided
+        if hasattr(args, 'config_file') and args.config_file:
+            from llm_agent_builder.config import reload_config
+            reload_config(args.config_file)
+        
         if args.command == "config":
             handle_config_command(args)
         elif args.command == "generate":

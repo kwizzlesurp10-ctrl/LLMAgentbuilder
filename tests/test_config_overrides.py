@@ -1,7 +1,6 @@
 """Tests for configuration overrides and priority."""
 import pytest
 import os
-import tempfile
 from pathlib import Path
 import yaml
 from llm_agent_builder.config import (
@@ -13,9 +12,9 @@ from llm_agent_builder.config import (
 @pytest.fixture
 def clean_env(monkeypatch):
     """Clean environment variables before each test."""
-    for key in list(os.environ.keys()):
-        if "__" in key or key in ["CONFIG_FILE", "ENVIRONMENT", "ENV"]:
-            monkeypatch.delenv(key, raising=False)
+    keys_to_remove = [key for key in os.environ.keys() if "__" in key or key in ["CONFIG_FILE", "ENVIRONMENT", "ENV"]]
+    for key in keys_to_remove:
+        monkeypatch.delenv(key, raising=False)
 
 
 @pytest.fixture
