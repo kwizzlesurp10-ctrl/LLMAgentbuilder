@@ -1,5 +1,5 @@
 # Production Environment Configuration
-# Production-ready settings with strict limits
+# Complete production-ready settings
 
 server:
   host: "0.0.0.0"
@@ -10,11 +10,25 @@ server:
 
 providers:
   google:
+    api_key_env: GOOGLE_GEMINI_KEY
+    default_model: gemini-1.5-pro
     rate_limit: 20
+    timeout: 60
   anthropic:
+    api_key_env: ANTHROPIC_API_KEY
+    default_model: claude-3-5-sonnet-20241022
     rate_limit: 20
+    timeout: 60
   huggingface:
+    api_key_env: HUGGINGFACEHUB_API_TOKEN
+    default_model: meta-llama/Meta-Llama-3-8B-Instruct
     rate_limit: 10
+    timeout: 120
+
+database:
+  workflow_db: workflow.db
+  pool_size: 5
+  timeout: 30
 
 logging:
   level: INFO
@@ -24,5 +38,7 @@ logging:
   backup_count: 5
 
 environment: production
+generated_agents_dir: generated_agents
+template_dir: null
 enable_metrics: true
 enable_rate_limiting: true
