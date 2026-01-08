@@ -3,6 +3,7 @@ import json
 
 BASE_URL = "http://localhost:8000"
 
+
 def test_health():
     print("Testing /healthz...")
     try:
@@ -11,6 +12,7 @@ def test_health():
         print(f"✅ /healthz passed: {r.json()}")
     except Exception as e:
         print(f"❌ /healthz failed: {e}")
+
 
 def test_metrics():
     print("\nTesting /metrics...")
@@ -23,6 +25,7 @@ def test_metrics():
             print("❌ /metrics passed but unexpected content")
     except Exception as e:
         print(f"❌ /metrics failed: {e}")
+
 
 def test_sandbox():
     print("\nTesting /api/execute (Sandbox)...")
@@ -40,6 +43,7 @@ def test_sandbox():
             print(f"❌ Sandbox ran but output unexpected: {data}")
     except Exception as e:
         print(f"❌ Sandbox failed: {e}")
+
 
 if __name__ == "__main__":
     test_health()
