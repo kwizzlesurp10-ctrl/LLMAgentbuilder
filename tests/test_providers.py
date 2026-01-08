@@ -126,13 +126,13 @@ def test_provider_returns_valid_template_names():
 def test_provider_supported_models_not_empty():
     """Test that all providers have non-empty supported models list."""
     providers = ProviderRegistry.get_all_names()
-    
+
     for provider_name in providers:
         provider = ProviderRegistry.get(provider_name)
         models = provider.get_supported_models()
-        
+
         assert len(models) > 0, f"{provider_name} should have at least one supported model"
-        
+
         # Verify default model is in supported models
         default_model = provider.get_default_model()
         assert default_model in models, \
