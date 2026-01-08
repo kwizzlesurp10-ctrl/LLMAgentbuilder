@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 import uvicorn
 from dotenv import load_dotenv
 
@@ -10,8 +11,8 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 # Force reload of llm_agent_builder if it was somehow imported
-if 'llm_agent_builder' in sys.modules:
-    del sys.modules['llm_agent_builder']
+if "llm_agent_builder" in sys.modules:
+    del sys.modules["llm_agent_builder"]
 
 if __name__ == "__main__":
     print(f"Starting server from {project_root}")

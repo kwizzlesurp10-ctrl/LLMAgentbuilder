@@ -6,19 +6,19 @@ designed for testing agents on HuggingFace Spaces and other server
 environments.
 """
 
+import importlib.util
 import os
 import sys
-import time
-import importlib.util
 import tempfile
-from pathlib import Path
-from typing import Optional, Dict, Any, Union
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
 
 # Import GitHub Copilot client if available
 try:
     from llm_agent_builder.copilot_client import CopilotClient
+
     COPILOT_AVAILABLE = True
 except ImportError:
     COPILOT_AVAILABLE = False
@@ -26,6 +26,7 @@ except ImportError:
 
 class ExecutionStatus(Enum):
     """Status of agent execution."""
+
     SUCCESS = "success"
     ERROR = "error"
     TIMEOUT = "timeout"
@@ -43,6 +44,7 @@ API_KEY_ERROR_MESSAGE = (
 @dataclass
 class ExecutionResult:
     """Result of agent execution."""
+
     status: ExecutionStatus
     output: str
     error: Optional[str] = None
@@ -54,7 +56,7 @@ class ExecutionResult:
             "status": self.status.value,
             "output": self.output,
             "error": self.error,
-            "execution_time": self.execution_time
+            "execution_time": self.execution_time,
         }
 
 
@@ -200,12 +202,7 @@ class AgentEngine:
         # not imported)
         agent_class = None
         for name, obj in module.__dict__.items():
-            if (
-                isinstance(obj, type) and
-                name[0].isupper() and
-                hasattr(obj, 'run') and
-                callable(getattr(obj, 'run'))
-            ):
+            if isinstance(obj, type) and name[0].isupper() and hasattr(obj, "run") and callable(getattr(obj, "run")):
                 agent_class = obj
                 break
 
@@ -250,6 +247,8 @@ class AgentEngine:
             provided)
         :return: ExecutionResult with status and output
         """
+        import time
+
         start_time = time.time()
 
         try:
@@ -267,14 +266,26 @@ class AgentEngine:
                 )
 
             # Determine if source is file or code
-            is_file = self._determine_source_type(agent_source)
+            is_file = False
+            if isinstance(agent_source, Path):
+                is_file = True
+            elif isinstance(agent_source, str):
+                if "\n" in agent_source:
+                    is_file = False
+                elif (os.path.exists(agent_source) or
+                      agent_source.endswith('.py')):
+                    is_file = True
 
             if is_file:
-                # Validate agent file exists
-                validation_error = self._validate_agent_path(agent_source, start_time)
-                if validation_error:
-                    return validation_error
-                agent_class = self._load_agent_from_file(Path(agent_source))
+                agent_path = Path(agent_source)
+                if not agent_path.exists():
+                    return ExecutionResult(
+                        status=ExecutionStatus.AGENT_NOT_FOUND,
+                        output="",
+                        error=f"Agent file not found: {agent_source}",
+                        execution_time=time.time() - start_time,
+                    )
+                agent_class = self._load_agent_from_file(agent_path)
             else:
                 # Assume it's code string
                 agent_class = self._load_agent_from_code(str(agent_source))
@@ -290,31 +301,20 @@ class AgentEngine:
                 result = str(result)
 
             return ExecutionResult(
-                status=ExecutionStatus.SUCCESS,
-                output=result,
-                execution_time=time.time() - start_time
+                status=ExecutionStatus.SUCCESS, output=result, execution_time=time.time() - start_time
             )
 
         except FileNotFoundError as e:
             return ExecutionResult(
-                status=ExecutionStatus.AGENT_NOT_FOUND,
-                output="",
-                error=str(e),
-                execution_time=time.time() - start_time
+                status=ExecutionStatus.AGENT_NOT_FOUND, output="", error=str(e), execution_time=time.time() - start_time
             )
         except Exception as e:
             return ExecutionResult(
-                status=ExecutionStatus.ERROR,
-                output="",
-                error=str(e),
-                execution_time=time.time() - start_time
+                status=ExecutionStatus.ERROR, output="", error=str(e), execution_time=time.time() - start_time
             )
 
     def execute_with_timeout(
-        self,
-        agent_source: Union[str, Path],
-        task: str,
-        agent_name: Optional[str] = None
+        self, agent_source: Union[str, Path], task: str, agent_name: Optional[str] = None
     ) -> ExecutionResult:
         """
         Execute an agent with timeout protection using subprocess.
@@ -349,16 +349,29 @@ class AgentEngine:
                 )
 
             # Determine if source is file or code
-            is_file = self._determine_source_type(agent_source)
+            is_file = False
+            if isinstance(agent_source, Path):
+                is_file = True
+            elif isinstance(agent_source, str):
+                if "\n" in agent_source:
+                    is_file = False
+                elif (os.path.exists(agent_source) or
+                      agent_source.endswith('.py')):
+                    is_file = True
 
             if is_file:
-                # Validate agent file exists
-                validation_error = self._validate_agent_path(agent_source, start_time)
-                if validation_error:
-                    return validation_error
-                agent_file = str(Path(agent_source).absolute())
+                agent_path = Path(agent_source)
+                if not agent_path.exists():
+                    return ExecutionResult(
+                        status=ExecutionStatus.AGENT_NOT_FOUND,
+                        output="",
+                        error=f"Agent file not found: {agent_source}",
+                        execution_time=time.time() - start_time,
+                    )
+                agent_file = str(agent_path.absolute())
             else:
                 # Create temporary file from code string
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as temp_file:
                 with tempfile.NamedTemporaryFile(
                     mode='w', suffix='.py', delete=False
                 ) as temp_file:
@@ -375,7 +388,7 @@ class AgentEngine:
                     capture_output=True,
                     text=True,
                     timeout=self.timeout,
-                    env={**os.environ, **self._get_env_with_api_key()}
+                    env={**os.environ, **self._get_env_with_api_key()},
                 )
 
                 output = result.stdout
@@ -384,16 +397,14 @@ class AgentEngine:
 
                 if result.returncode == 0:
                     return ExecutionResult(
-                        status=ExecutionStatus.SUCCESS,
-                        output=output,
-                        execution_time=time.time() - start_time
+                        status=ExecutionStatus.SUCCESS, output=output, execution_time=time.time() - start_time
                     )
                 else:
                     return ExecutionResult(
                         status=ExecutionStatus.ERROR,
                         output=output,
                         error=f"Agent exited with code {result.returncode}",
-                        execution_time=time.time() - start_time
+                        execution_time=time.time() - start_time,
                     )
 
             except subprocess.TimeoutExpired:
@@ -401,7 +412,7 @@ class AgentEngine:
                     status=ExecutionStatus.TIMEOUT,
                     output="",
                     error=f"Execution timed out after {self.timeout} seconds",
-                    execution_time=time.time() - start_time
+                    execution_time=time.time() - start_time,
                 )
             finally:
                 # Clean up temp file if we created it
@@ -410,18 +421,11 @@ class AgentEngine:
 
         except Exception as e:
             return ExecutionResult(
-                status=ExecutionStatus.ERROR,
-                output="",
-                error=str(e),
-                execution_time=time.time() - start_time
+                status=ExecutionStatus.ERROR, output="", error=str(e), execution_time=time.time() - start_time
             )
 
     def _execute_with_copilot(
-        self,
-        agent_source: Union[str, Path],
-        task: str,
-        copilot_client: Any,
-        start_time: float
+        self, agent_source: Union[str, Path], task: str, copilot_client: Any, start_time: float
     ) -> ExecutionResult:
         """
         Execute agent using GitHub Copilot API.
@@ -434,6 +438,7 @@ class AgentEngine:
         """
         try:
             # Use Copilot chat completion API
+            messages = [{"role": "user", "content": task}]
             messages = [
                 {"role": "user", "content": task}
             ]
@@ -441,16 +446,14 @@ class AgentEngine:
             response = copilot_client.get_chat_completion(messages=messages)
 
             return ExecutionResult(
-                status=ExecutionStatus.SUCCESS,
-                output=response.content,
-                execution_time=time.time() - start_time
+                status=ExecutionStatus.SUCCESS, output=response.content, execution_time=time.time() - start_time
             )
         except Exception as e:
             return ExecutionResult(
                 status=ExecutionStatus.ERROR,
                 output="",
                 error=f"GitHub Copilot API error: {str(e)}",
-                execution_time=time.time() - start_time
+                execution_time=time.time() - start_time,
             )
 
     def _get_env_with_api_key(self) -> Dict[str, str]:
@@ -475,7 +478,7 @@ def run_agent(
     task: str,
     api_key: Optional[str] = None,
     use_subprocess: bool = True,
-    timeout: int = 60
+    timeout: int = 60,
 ) -> Dict[str, Any]:
     """
     Convenience function to run an agent and return results as dictionary.

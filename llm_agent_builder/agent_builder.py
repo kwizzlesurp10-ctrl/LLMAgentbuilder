@@ -1,6 +1,9 @@
 import os
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
 from jinja2 import Environment, FileSystemLoader
+from .providers import ProviderRegistry
+
 
 class AgentBuilder:
     def __init__(self, template_path: Optional[str] = None):
@@ -25,7 +28,7 @@ class AgentBuilder:
         stream: bool = False,
         tools: Optional[List[Dict[str, Any]]] = None,
         enable_multi_step: bool = False,
-        db_path: Optional[str] = None
+        db_path: Optional[str] = None,
     ) -> str:
         """
         Generates the Python code for a new agent.
@@ -34,7 +37,7 @@ class AgentBuilder:
         :param prompt: The system prompt for the agent.
         :param example_task: An example task for the agent.
         :param model: The model to use.
-        :param provider: The provider (google, huggingface, or openai).
+        :param provider: The provider (google, anthropic, huggingface, huggingchat, or openai).
         :param stream: Whether to stream the response.
         :param tools: Optional list of tool definitions for tool calling support.
         :param enable_multi_step: Enable multi-step workflow capabilities.
@@ -42,17 +45,12 @@ class AgentBuilder:
         :return: The generated Python code as a string.
         """
         
-        if provider == "huggingface":
-            template_name = "agent_template_hf.py.j2"
-        elif provider == "openai":
-            template_name = "agent_template_openai.py.j2"
-        elif provider == "google":
-            template_name = "agent_template.py.j2"  # Use same template structure, will need Google Gemini client
-        else:
-            template_name = "agent_template.py.j2"
+        # Use provider registry to get the template name
+        provider_instance = ProviderRegistry.get(provider)
+        template_name = provider_instance.get_template_name()
             
         template = self.env.get_template(template_name)
-        
+
         return template.render(
             agent_name=agent_name,
             prompt=prompt,
@@ -62,5 +60,5 @@ class AgentBuilder:
             stream=stream,
             tools=tools or [],
             enable_multi_step=enable_multi_step,
-            db_path=db_path
+            db_path=db_path,
         )
