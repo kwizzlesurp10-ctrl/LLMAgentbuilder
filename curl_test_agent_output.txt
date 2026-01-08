@@ -1,25 +1,0 @@
-Note: Unnecessary use of -X or --request, POST is already inferred.
-*   Trying 127.0.0.1:8001...
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Connected to localhost (127.0.0.1) port 8001 (#0)
-> POST /api/test-agent HTTP/1.1
-> Host: localhost:8001
-> User-Agent: curl/7.81.0
-> Accept: */*
-> Content-Type: application/json
-> Content-Length: 191
-> 
-} [191 bytes data]
-* Mark bundle as not supporting multiuse
-< HTTP/1.1 405 Method Not Allowed
-< date: Thu, 04 Dec 2025 15:02:30 GMT
-< server: uvicorn
-< allow: GET
-< content-length: 31
-< content-type: application/json
-< 
-{ [31 bytes data]
-100   222  100    31  100   191  20354   122k --:--:-- --:--:-- --:--:--  216k
-* Connection #0 to host localhost left intact
-{"detail":"Method Not Allowed"}

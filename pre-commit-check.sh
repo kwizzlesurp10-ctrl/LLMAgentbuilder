@@ -2,7 +2,7 @@
 # Pre-commit hook to check for exposed API keys
 
 # Keywords to search for
-KEYWORDS="ANTHROPIC_API_KEY HUGGINGFACEHUB_API_TOKEN sk-ant- hf_"
+KEYWORDS="GOOGLE_GEMINI_KEY HUGGINGFACEHUB_API_TOKEN sk-ant- hf_"
 
 # Check staged files
 FILES=$(git diff --cached --name-only)

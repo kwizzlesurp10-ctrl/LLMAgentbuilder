@@ -5,10 +5,13 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
         name: '',
         prompt: '',
         task: '',
-        provider: 'anthropic',
-        model: 'claude-3-5-sonnet-20241022',
-        stream: false
+        provider: 'google',
+        model: 'gemini-1.5-pro',
+        stream: false,
+        enable_multi_step: false,
+        tools: null
     });
+    const [toolsJson, setToolsJson] = useState('');
     const [isExecuting, setIsExecuting] = useState(false);
     const [enhanceLoading, setEnhanceLoading] = useState(false);
     const [enhancementOptions, setEnhancementOptions] = useState(null);
@@ -23,8 +26,8 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
 
             // Reset model when provider changes
             if (name === 'provider' && value !== prev.provider) {
-                if (value === 'anthropic') {
-                    newData.model = 'claude-3-5-sonnet-20241022';
+                if (value === 'google') {
+                    newData.model = 'gemini-1.5-pro';
                 } else if (value === 'huggingface') {
                     newData.model = 'meta-llama/Meta-Llama-3-8B-Instruct';
                 }
@@ -121,7 +124,7 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
                         value={formData.provider}
                         onChange={handleChange}
                     >
-                        <option value="anthropic">Anthropic</option>
+                        <option value="google">Google Gemini</option>
                         <option value="huggingface">Hugging Face</option>
                     </select>
                 </div>
@@ -144,12 +147,12 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
                         onChange={handleChange}
                         style={{ background: 'rgba(15, 23, 42, 0.8)' }}
                     >
-                        {formData.provider === 'anthropic' ? (
+                        {formData.provider === 'google' ? (
                             <>
-                                <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Latest)</option>
-                                <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
-                                <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                                <option value="claude-3-haiku-20240307">Claude 3 Haiku (Legacy)</option>
+                                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                                <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                                <option value="gemini-pro">Gemini Pro</option>
+                                <option value="gemini-1.0-pro">Gemini 1.0 Pro</option>
                             </>
                         ) : (
                             <>
@@ -279,6 +282,50 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
                         />
                         Stream Response
                     </label>
+                </div>
+
+                <div className="form-group checkbox-group">
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="enable_multi_step"
+                            checked={formData.enable_multi_step}
+                            onChange={handleChange}
+                        />
+                        Enable Multi-Step Workflow
+                    </label>
+                    <small style={{ display: 'block', marginTop: '0.5rem', color: '#888' }}>
+                        Allows the agent to iterate and refine responses over multiple steps
+                    </small>
+                </div>
+
+                <div className="form-group">
+                    <label htmlFor="tools">Tools (JSON - Optional)</label>
+                    <textarea
+                        id="tools"
+                        name="tools"
+                        value={toolsJson}
+                        onChange={(e) => {
+                            setToolsJson(e.target.value);
+                            try {
+                                if (e.target.value.trim()) {
+                                    const parsed = JSON.parse(e.target.value);
+                                    setFormData(prev => ({ ...prev, tools: Array.isArray(parsed) ? parsed : [parsed] }));
+                                } else {
+                                    setFormData(prev => ({ ...prev, tools: null }));
+                                }
+                            } catch (err) {
+                                // Invalid JSON, but don't block submission - let backend validate
+                                setFormData(prev => ({ ...prev, tools: null }));
+                            }
+                        }}
+                        placeholder='[{"name": "search_web", "description": "Search the web", "input_schema": {"type": "object", "properties": {"query": {"type": "string"}}}}]'
+                        rows="6"
+                        style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
+                    />
+                    <small style={{ display: 'block', marginTop: '0.5rem', color: '#888' }}>
+                        Define tools the agent can use. Must be valid JSON array of tool definitions.
+                    </small>
                 </div>
 
                 <div style={{ display: 'flex', gap: '1rem' }}>

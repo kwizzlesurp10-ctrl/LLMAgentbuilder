@@ -10,7 +10,7 @@ sys.path.append(str(root_dir))
 
 @pytest.fixture
 def mock_env(monkeypatch):
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "mock-api-key")
+    monkeypatch.setenv("GOOGLE_GEMINI_KEY", "mock-api-key")
     monkeypatch.setenv("ANTHROPIC_MODEL", "mock-model")
 
 

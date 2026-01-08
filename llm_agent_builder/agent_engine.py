@@ -2,7 +2,8 @@
 Agent Engine - Programmatic execution engine for testing built agents.
 
 This module provides a headless way to execute agents without CLI output,
-designed for testing agents on HuggingFace Spaces and other server environments.
+designed for testing agents on HuggingFace Spaces and other server
+environments.
 """
 
 import importlib.util
@@ -61,11 +62,17 @@ class AgentEngine:
     and API responses.
     """
 
-    def __init__(self, api_key: Optional[str] = None, timeout: int = 60, memory_limit_mb: int = 512):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        timeout: int = 60,
+        memory_limit_mb: int = 512
+    ):
         """
         Initialize the Agent Engine.
 
-        :param api_key: API key for the agent (if not provided, will try env vars)
+        :param api_key: API key for the agent (if not provided, will try
+            env vars)
         :param timeout: Execution timeout in seconds
         :param memory_limit_mb: Memory limit in megabytes
         """
@@ -76,16 +83,17 @@ class AgentEngine:
     def _get_api_key(self) -> Optional[str]:
         """Get API key from environment variables."""
         return (
-            os.environ.get("ANTHROPIC_API_KEY")
-            or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
-            or os.environ.get("GITHUB_COPILOT_TOKEN")
+            os.environ.get("GOOGLE_GEMINI_KEY") or
+            os.environ.get("HUGGINGFACEHUB_API_TOKEN") or
+            os.environ.get("GITHUB_COPILOT_TOKEN")
         )
 
     def _is_copilot_token(self, token: Optional[str]) -> bool:
         """Check if token is a GitHub Copilot bearer token."""
         if not token:
             return False
-        return any(token.startswith(prefix) for prefix in ["ghp_", "github_pat_", "mock-copilot-"])
+        prefixes = ["ghp_", "github_pat_", "mock-copilot-"]
+        return any(token.startswith(prefix) for prefix in prefixes)
 
     def _get_copilot_client(self) -> Optional[Any]:
         """Get GitHub Copilot client if available and token is present."""
@@ -112,7 +120,9 @@ class AgentEngine:
             raise FileNotFoundError(f"Agent file not found: {agent_path}")
 
         # Load the module dynamically
-        spec = importlib.util.spec_from_file_location("agent_module", agent_path)
+        spec = importlib.util.spec_from_file_location(
+            "agent_module", agent_path
+        )
         if spec is None or spec.loader is None:
             raise ImportError(f"Could not load agent from {agent_path}")
 
@@ -126,7 +136,8 @@ class AgentEngine:
         finally:
             sys.path[:] = original_path
 
-        # Find the agent class (first class defined in the module that's not imported)
+        # Find the agent class (first class defined in the module that's
+        # not imported)
         agent_class = None
         for name, obj in module.__dict__.items():
             if isinstance(obj, type) and name[0].isupper() and hasattr(obj, "run") and callable(getattr(obj, "run")):
@@ -146,7 +157,9 @@ class AgentEngine:
         :return: Agent class
         """
         # Create a temporary file and load from it
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(
+            mode='w', suffix='.py', delete=False
+        ) as temp_file:
             temp_file.write(code)
             temp_file_path = temp_file.name
 
@@ -157,13 +170,19 @@ class AgentEngine:
             if os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
 
-    def execute(self, agent_source: Union[str, Path], task: str, agent_name: Optional[str] = None) -> ExecutionResult:
+    def execute(
+        self,
+        agent_source: Union[str, Path],
+        task: str,
+        agent_name: Optional[str] = None
+    ) -> ExecutionResult:
         """
         Execute an agent with a given task.
 
         :param agent_source: Path to agent file or code string
         :param task: Task to execute
-        :param agent_name: Optional agent class name (auto-detected if not provided)
+        :param agent_name: Optional agent class name (auto-detected if not
+            provided)
         :return: ExecutionResult with status and output
         """
         import time
@@ -173,18 +192,24 @@ class AgentEngine:
         try:
             # Check API key
             if not self.api_key:
+                error_msg = (
+                    "API key not found. Set GOOGLE_GEMINI_KEY, "
+                    "HUGGINGFACEHUB_API_TOKEN, or GITHUB_COPILOT_TOKEN"
+                )
                 return ExecutionResult(
                     status=ExecutionStatus.API_KEY_MISSING,
                     output="",
-                    error="API key not found. Set ANTHROPIC_API_KEY, HUGGINGFACEHUB_API_TOKEN, or GITHUB_COPILOT_TOKEN",
-                    execution_time=time.time() - start_time,
+                    error=error_msg,
+                    execution_time=time.time() - start_time
                 )
 
             # Check if using GitHub Copilot API
             copilot_client = self._get_copilot_client()
             if copilot_client:
                 # Use GitHub Copilot API for execution
-                return self._execute_with_copilot(agent_source, task, copilot_client, start_time)
+                return self._execute_with_copilot(
+                    agent_source, task, copilot_client, start_time
+                )
 
             # Determine if source is file or code
             is_file = False
@@ -193,7 +218,8 @@ class AgentEngine:
             elif isinstance(agent_source, str):
                 if "\n" in agent_source:
                     is_file = False
-                elif os.path.exists(agent_source) or agent_source.endswith(".py"):
+                elif (os.path.exists(agent_source) or
+                      agent_source.endswith('.py')):
                     is_file = True
 
             if is_file:
@@ -244,12 +270,12 @@ class AgentEngine:
 
         :param agent_source: Path to agent file or code string
         :param task: Task to execute
-        :param agent_name: Optional agent class name (auto-detected if not provided)
+        :param agent_name: Optional agent class name (auto-detected if not
+            provided)
         :return: ExecutionResult with status and output
         """
         import subprocess
         import tempfile
-        import time
 
         start_time = time.time()
         temp_file_created = False
@@ -257,18 +283,24 @@ class AgentEngine:
         try:
             # Check API key
             if not self.api_key:
+                error_msg = (
+                    "API key not found. Set GOOGLE_GEMINI_KEY, "
+                    "HUGGINGFACEHUB_API_TOKEN, or GITHUB_COPILOT_TOKEN"
+                )
                 return ExecutionResult(
                     status=ExecutionStatus.API_KEY_MISSING,
                     output="",
-                    error="API key not found. Set ANTHROPIC_API_KEY, HUGGINGFACEHUB_API_TOKEN, or GITHUB_COPILOT_TOKEN",
-                    execution_time=time.time() - start_time,
+                    error=error_msg,
+                    execution_time=time.time() - start_time
                 )
 
             # Check if using GitHub Copilot API
             copilot_client = self._get_copilot_client()
             if copilot_client:
                 # Use GitHub Copilot API for execution
-                return self._execute_with_copilot(agent_source, task, copilot_client, start_time)
+                return self._execute_with_copilot(
+                    agent_source, task, copilot_client, start_time
+                )
 
             # Determine if source is file or code
             is_file = False
@@ -277,7 +309,8 @@ class AgentEngine:
             elif isinstance(agent_source, str):
                 if "\n" in agent_source:
                     is_file = False
-                elif os.path.exists(agent_source) or agent_source.endswith(".py"):
+                elif (os.path.exists(agent_source) or
+                      agent_source.endswith('.py')):
                     is_file = True
 
             if is_file:
@@ -293,6 +326,9 @@ class AgentEngine:
             else:
                 # Create temporary file from code string
                 with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as temp_file:
+                with tempfile.NamedTemporaryFile(
+                    mode='w', suffix='.py', delete=False
+                ) as temp_file:
                     temp_file.write(str(agent_source))
                     agent_file = temp_file.name
                     temp_file_created = True
@@ -359,6 +395,9 @@ class AgentEngine:
         try:
             # Use Copilot chat completion API
             messages = [{"role": "user", "content": task}]
+            messages = [
+                {"role": "user", "content": task}
+            ]
 
             response = copilot_client.get_chat_completion(messages=messages)
 
@@ -380,13 +419,13 @@ class AgentEngine:
             # Determine which key to set based on what's available
             if self._is_copilot_token(self.api_key):
                 env["GITHUB_COPILOT_TOKEN"] = self.api_key
-            elif os.environ.get("ANTHROPIC_API_KEY"):
-                env["ANTHROPIC_API_KEY"] = self.api_key
+            elif os.environ.get("GOOGLE_GEMINI_KEY"):
+                env["GOOGLE_GEMINI_KEY"] = self.api_key
             elif os.environ.get("HUGGINGFACEHUB_API_TOKEN"):
                 env["HUGGINGFACEHUB_API_TOKEN"] = self.api_key
             else:
-                # Default to Anthropic if we can't determine
-                env["ANTHROPIC_API_KEY"] = self.api_key
+                # Default to Google Gemini if we can't determine
+                env["GOOGLE_GEMINI_KEY"] = self.api_key
         return env
 
 
@@ -403,7 +442,8 @@ def run_agent(
     :param agent_path: Path to agent file
     :param task: Task to execute
     :param api_key: Optional API key (uses env vars if not provided)
-    :param use_subprocess: Whether to use subprocess execution (recommended for timeout protection)
+    :param use_subprocess: Whether to use subprocess execution (recommended
+        for timeout protection)
     :param timeout: Execution timeout in seconds
     :return: Dictionary with execution results
     """

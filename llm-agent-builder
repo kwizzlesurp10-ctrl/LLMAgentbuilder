@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Wrapper script for llm-agent-builder CLI
+# This allows running the CLI without installing the package
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# If script is in ~/.local/bin, find the project root
+if [[ "$SCRIPT_DIR" == *"/.local/bin" ]]; then
+    # Try to find the project root (look for setup.py or pyproject.toml)
+    PROJECT_ROOT="$HOME/llmbuilder/LLMAgentbuilder"
+    if [[ -f "$PROJECT_ROOT/pyproject.toml" ]]; then
+        cd "$PROJECT_ROOT" || exit 1
+    else
+        echo "Error: Could not find project root. Please run from project directory or install the package."
+        exit 1
+    fi
+else
+    # Script is in project directory
+    cd "$SCRIPT_DIR" || exit 1
+fi
+
+# Run the CLI module
+python3 -m llm_agent_builder.cli "$@"
+

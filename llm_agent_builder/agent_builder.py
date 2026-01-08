@@ -2,6 +2,7 @@ import os
 from typing import Any, Dict, List, Optional
 
 from jinja2 import Environment, FileSystemLoader
+from .providers import ProviderRegistry
 
 
 class AgentBuilder:
@@ -18,12 +19,12 @@ class AgentBuilder:
             self.template = self.env.get_template('agent_template.py.j2')
 
     def build_agent(
-        self,
-        agent_name: str,
-        prompt: str,
-        example_task: str,
-        model: str = "claude-3-5-sonnet-20241022",
-        provider: str = "anthropic",
+        self, 
+        agent_name: str, 
+        prompt: str, 
+        example_task: str, 
+        model: str = "gemini-1.5-pro", 
+        provider: str = "google", 
         stream: bool = False,
         tools: Optional[List[Dict[str, Any]]] = None,
         enable_multi_step: bool = False,
@@ -36,21 +37,18 @@ class AgentBuilder:
         :param prompt: The system prompt for the agent.
         :param example_task: An example task for the agent.
         :param model: The model to use.
-        :param provider: The provider (anthropic or huggingface).
+        :param provider: The provider (google, anthropic, huggingface, huggingchat, or openai).
         :param stream: Whether to stream the response.
         :param tools: Optional list of tool definitions for tool calling support.
         :param enable_multi_step: Enable multi-step workflow capabilities.
         :param db_path: Optional path to a SQLite database.
         :return: The generated Python code as a string.
         """
-
-        if provider == "huggingface":
-            template_name = "agent_template_hf.py.j2"
-        elif provider == "openai":
-            template_name = "agent_template_openai.py.j2"
-        else:
-            template_name = "agent_template.py.j2"
-
+        
+        # Use provider registry to get the template name
+        provider_instance = ProviderRegistry.get(provider)
+        template_name = provider_instance.get_template_name()
+            
         template = self.env.get_template(template_name)
 
         return template.render(
