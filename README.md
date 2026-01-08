@@ -15,7 +15,7 @@ LLM Agent Builder is a comprehensive Python application that enables developers 
 
 ## ✨ Features
 
-- 🚀 **Multi-Provider Support**: Generate agents for Anthropic Claude, HuggingFace, and HuggingChat models
+- 🚀 **Multi-Provider Support**: Generate agents for Google Gemini, Anthropic Claude, OpenAI, HuggingFace, and HuggingChat models
 - 💬 **HuggingChat Integration**: Full support for HuggingChat's open-source conversational models
 - 🔒 **Advanced Safety**: Built-in content moderation and safety checking with HuggingFace models
 - 🌐 **MCP Integration**: Model Context Protocol support for standardized HuggingFace resource access
@@ -549,6 +549,158 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [React Documentation](https://react.dev/)
 
+## 🔌 Extending with Custom Providers
+
+LLM Agent Builder uses a provider registry pattern that makes it easy to add support for new LLM providers without modifying core code.
+
+### Provider Architecture
+
+The system uses an abstract base class `LLMProvider` that defines the interface all providers must implement:
+
+- `get_template_name()` - Returns the Jinja2 template file for generating agents
+- `validate_config(config)` - Validates provider-specific configuration
+- `get_env_var_name()` - Returns the environment variable name for API keys
+- `get_default_model()` - Returns the default model for the provider
+- `get_supported_models()` - Returns list of supported models
+
+### Adding a New Provider
+
+To add a new LLM provider, follow these steps:
+
+#### 1. Create a Provider Class
+
+Create a new file `llm_agent_builder/providers/your_provider.py`:
+
+```python
+from typing import Dict, List
+from .base import LLMProvider, register_provider
+
+
+@register_provider("your_provider")
+class YourProvider(LLMProvider):
+    """Provider for Your LLM Service."""
+    
+    def get_template_name(self) -> str:
+        """Return the template file for this provider."""
+        return "agent_template_your_provider.py.j2"
+    
+    def validate_config(self, config: Dict) -> bool:
+        """Validate provider-specific configuration."""
+        model = config.get("model")
+        if model and model not in self.get_supported_models():
+            return False
+        return True
+    
+    def get_env_var_name(self) -> str:
+        """Return the environment variable name for API key."""
+        return "YOUR_PROVIDER_API_KEY"
+    
+    def get_default_model(self) -> str:
+        """Return the default model."""
+        return "your-default-model"
+    
+    def get_supported_models(self) -> List[str]:
+        """Return list of supported models."""
+        return [
+            "your-default-model",
+            "your-other-model",
+        ]
+```
+
+#### 2. Create a Template
+
+Create a Jinja2 template file `llm_agent_builder/templates/agent_template_your_provider.py.j2`:
+
+```python
+import os
+from typing import Optional
+
+class {{ agent_name }}:
+    def __init__(self, api_key: str):
+        # Initialize your provider's client
+        self.api_key = api_key
+        self.model = "{{ model }}"
+        self.prompt = "{{ prompt }}"
+    
+    def run(self, task: str) -> str:
+        # Implement your provider's API call
+        # Return the response text
+        pass
+
+if __name__ == '__main__':
+    import os
+    from dotenv import load_dotenv
+    
+    load_dotenv()
+    api_key = os.environ.get("YOUR_PROVIDER_API_KEY")
+    if not api_key:
+        raise ValueError("YOUR_PROVIDER_API_KEY not found")
+    
+    agent = {{ agent_name }}(api_key=api_key)
+    result = agent.run("{{ example_task }}")
+    print(result)
+```
+
+#### 3. Register the Provider
+
+Add the import to `llm_agent_builder/providers/__init__.py`:
+
+```python
+from .your_provider import YourProvider
+
+__all__ = [
+    # ... existing exports
+    'YourProvider',
+]
+```
+
+#### 4. Test Your Provider
+
+Create tests in `tests/test_your_provider.py`:
+
+```python
+from llm_agent_builder.providers import ProviderRegistry
+from llm_agent_builder.agent_builder import AgentBuilder
+
+def test_your_provider_registered():
+    assert ProviderRegistry.is_registered("your_provider")
+
+def test_your_provider_template():
+    provider = ProviderRegistry.get("your_provider")
+    assert provider.get_template_name() == "agent_template_your_provider.py.j2"
+
+def test_build_agent_with_your_provider():
+    builder = AgentBuilder()
+    code = builder.build_agent(
+        agent_name="TestAgent",
+        prompt="Test prompt",
+        example_task="Test task",
+        model="your-default-model",
+        provider="your_provider"
+    )
+    assert "class TestAgent:" in code
+```
+
+### Benefits of the Provider Pattern
+
+- ✅ **Open/Closed Principle**: Add new providers without modifying existing code
+- ✅ **Standardized Interface**: All providers implement the same interface
+- ✅ **Automatic Discovery**: Providers are automatically registered via decorator
+- ✅ **Easy Testing**: Each provider can be tested independently
+- ✅ **Plugin Architecture**: Providers can be developed as separate plugins
+
+### Current Providers
+
+The following providers are currently available:
+
+| Provider | Models | Template | API Key Env Var |
+|----------|--------|----------|-----------------|
+| **google** | gemini-1.5-pro, gemini-1.5-flash | agent_template.py.j2 | GOOGLE_GEMINI_KEY |
+| **anthropic** | claude-3-5-sonnet, claude-3-opus | agent_template.py.j2 | ANTHROPIC_API_KEY |
+| **openai** | gpt-4o, gpt-4-turbo, gpt-4 | agent_template_openai.py.j2 | OPENAI_API_KEY |
+| **huggingface** | Meta-Llama-3-8B-Instruct | agent_template_hf.py.j2 | HUGGINGFACEHUB_API_TOKEN |
+| **huggingchat** | Meta-Llama-3.1-70B-Instruct | agent_template_huggingchat.py.j2 | HUGGINGCHAT_EMAIL |
+
 ## 🐛 Troubleshooting
 
 ### Common Issues
@@ -580,7 +732,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📈 Roadmap
 
-- [ ] Support for OpenAI models
+- [x] Support for OpenAI models (✅ Completed)
+- [x] Provider registry pattern for easy extensibility (✅ Completed)
 - [ ] Agent marketplace/sharing
 - [ ] Visual workflow builder
 - [ ] Agent versioning

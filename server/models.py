@@ -1,20 +1,25 @@
 from enum import Enum
 from pydantic import BaseModel, field_validator
 from typing import Optional, Dict, Any, List
+from llm_agent_builder.providers import ProviderRegistry
 
 
-class ProviderEnum(str, Enum):
-    GOOGLE = "google"
-    HUGGINGFACE = "huggingface"
-    HUGGINGCHAT = "huggingchat"
-    OPENAI = "openai"
+# Dynamically generate ProviderEnum from registered providers
+def _create_provider_enum():
+    """Create a dynamic Enum from registered providers."""
+    provider_names = ProviderRegistry.get_all_names()
+    members = {name.upper(): name for name in provider_names}
+    return Enum('ProviderEnum', members, type=str)
+
+
+ProviderEnum = _create_provider_enum()
 
 
 class GenerateRequest(BaseModel):
     name: str
     prompt: str
     task: str
-    provider: ProviderEnum = ProviderEnum.GOOGLE
+    provider: str = "google"  # String allows dynamic provider registration without code changes
     model: str
     stream: bool = False
     db_path: Optional[str] = None
@@ -34,47 +39,35 @@ class GenerateRequest(BaseModel):
             raise ValueError("Agent name must start with a letter or underscore")
         return trimmed
 
+    @field_validator('provider')
+    @classmethod
+    def validate_provider(cls, v):
+        """Validate that the provider is registered."""
+        if not ProviderRegistry.is_registered(v):
+            available = ', '.join(ProviderRegistry.get_all_names())
+            raise ValueError(f"Provider '{v}' not supported. Available providers: {available}")
+        return v
+
     @field_validator('model')
     @classmethod
     def validate_model(cls, v, info):
-        provider = info.data.get('provider')
-        if provider == ProviderEnum.GOOGLE:
-            allowed = [
-                "gemini-1.5-pro",
-                "gemini-1.5-flash",
-                "gemini-pro",
-                "gemini-1.0-pro"
-            ]
-            if v not in allowed:
-                raise ValueError(f"Model {v} not supported for Google Gemini")
-        elif provider == ProviderEnum.HUGGINGFACE:
-            allowed = [
-                "meta-llama/Meta-Llama-3-8B-Instruct",
-                "mistralai/Mistral-7B-Instruct-v0.3"
-            ]
-            if v not in allowed:
-                raise ValueError(f"Model {v} not supported for Hugging Face")
-        elif provider == ProviderEnum.HUGGINGCHAT:
-            allowed = [
-                "meta-llama/Meta-Llama-3.1-70B-Instruct",
-                "meta-llama/Meta-Llama-3.1-8B-Instruct",
-                "mistralai/Mistral-7B-Instruct-v0.3",
-                "mistralai/Mixtral-8x7B-Instruct-v0.1",
-                "codellama/CodeLlama-34b-Instruct-hf",
-                "HuggingFaceH4/zephyr-7b-beta"
-            ]
-            if v not in allowed:
-                raise ValueError(f"Model {v} not supported for HuggingChat")
-        elif provider == ProviderEnum.OPENAI:
-            allowed = [
-                "gpt-4o",
-                "gpt-4o-mini",
-                "gpt-4-turbo",
-                "gpt-4",
-                "gpt-3.5-turbo"
-            ]
-            if v not in allowed:
-                raise ValueError(f"Model {v} not supported for OpenAI")
+        """Validate model using provider's supported models list."""
+        provider_name = info.data.get('provider')
+        if not provider_name:
+            return v
+        
+        # Check if provider exists first
+        if not ProviderRegistry.is_registered(provider_name):
+            # Let the provider validator handle this
+            return v
+        
+        provider = ProviderRegistry.get(provider_name)
+        supported_models = provider.get_supported_models()
+        if v not in supported_models:
+            models_list = ', '.join(supported_models)
+            raise ValueError(f"Model '{v}' not supported for {provider_name}. "
+                           f"Supported models: {models_list}")
+        
         return v
 
 
@@ -94,7 +87,7 @@ class AgentVersion(BaseModel):
     parent_version: Optional[str]
     prompt: str
     task: str
-    provider: ProviderEnum
+    provider: str
     model: str
     code: str
     created_at: str
@@ -114,7 +107,7 @@ class AgentExport(BaseModel):
     name: str
     prompt: str
     task: str
-    provider: ProviderEnum
+    provider: str
     model: str
     stream: bool = False
     version: Optional[str] = None
@@ -130,6 +123,6 @@ class AgentImportRequest(BaseModel):
 class EnhancePromptRequest(BaseModel):
     """Request model for enhancing a system prompt."""
     keyword: str
-    provider: ProviderEnum = ProviderEnum.GOOGLE
+    provider: str = "google"
     model: str
 
