@@ -314,17 +314,51 @@ LLMAgentbuilder/
 
 ### Multi-Step Workflows
 
-Agents can be generated with multi-step workflow capabilities:
+Agents can be generated with multi-step workflow capabilities that allow iterative refinement:
+
+**CLI:**
+
+```bash
+llm-agent-builder generate \
+  --name "ResearchAgent" \
+  --prompt "You are a research assistant" \
+  --task "Research topic X" \
+  --enable-multi-step
+```
+
+**Python:**
 
 ```python
+from llm_agent_builder.agent_builder import AgentBuilder
+
+builder = AgentBuilder()
+code = builder.build_agent(
+    agent_name="ResearchAgent",
+    prompt="You are a research assistant",
+    example_task="Research topic X",
+    enable_multi_step=True
+)
+
 # In your generated agent
-agent = MyAgent(api_key="your-key")
+agent = ResearchAgent(api_key="your-key")
 result = agent.run_multi_step("Complete this complex task", max_steps=5)
 ```
 
 ### Tool Integration
 
-Generate agents with tool calling support:
+Generate agents with tool calling support to extend capabilities:
+
+**CLI:**
+
+```bash
+llm-agent-builder generate \
+  --name "ToolAgent" \
+  --prompt "You are an agent with tools" \
+  --task "Use tools to complete tasks" \
+  --tools examples/tools_example.json
+```
+
+**Python:**
 
 ```python
 builder = AgentBuilder()
@@ -344,9 +378,11 @@ code = builder.build_agent(
             }
         }
     ],
-    enable_multi_step=True
+    enable_multi_step=True  # Can combine with multi-step!
 )
 ```
+
+**📖 See [MULTI_STEP_AND_TOOLS_GUIDE.md](docs/MULTI_STEP_AND_TOOLS_GUIDE.md) for comprehensive documentation and examples.**
 
 ### API Endpoints
 
@@ -446,7 +482,7 @@ LLM Agent Builder includes comprehensive safety features powered by HuggingFace:
 - **Safe Agent Wrapper**: Add safety checking to any agent
 - **Gated Model Support**: Handle models that require approval
 
-See [HUGGINGFACE_GUIDE.md](HUGGINGFACE_GUIDE.md) for detailed safety documentation.
+See [HUGGINGFACE_GUIDE.md](docs/HUGGINGFACE_GUIDE.md) for detailed safety documentation.
 
 ## 🌐 HuggingFace MCP Integration
 
@@ -465,7 +501,7 @@ mcp = HuggingFaceMCPClient()
 models = mcp.call_tool("search_models", {"query": "sentiment", "limit": 5})
 ```
 
-See [HUGGINGFACE_GUIDE.md](HUGGINGFACE_GUIDE.md) for complete MCP documentation.
+See [HUGGINGFACE_GUIDE.md](docs/HUGGINGFACE_GUIDE.md) for complete MCP documentation.
 
 ## 🤝 Contributing
 
@@ -506,7 +542,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📚 Additional Resources
 
-- [HuggingFace Integration Guide](HUGGINGFACE_GUIDE.md) - **Complete guide to HuggingChat, MCP, and safety features**
+- [HuggingFace Integration Guide](docs/HUGGINGFACE_GUIDE.md) - **Complete guide to HuggingChat, MCP, and safety features**
 - [Anthropic API Documentation](https://docs.anthropic.com/)
 - [Hugging Face Hub Documentation](https://huggingface.co/docs/hub/)
 - [HuggingChat Models](https://huggingface.co/chat/models)

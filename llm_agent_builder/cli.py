@@ -256,6 +256,8 @@ Examples:
     gen_parser.add_argument("--template", help="Path to a custom Jinja2 template file")
     gen_parser.add_argument("--interactive", action="store_true", help="Run in interactive mode")
     gen_parser.add_argument("--db-path", help="Path to a SQLite database for the agent to use")
+    gen_parser.add_argument("--enable-multi-step", action="store_true", help="Enable multi-step workflow capabilities")
+    gen_parser.add_argument("--tools", help="Path to JSON file containing tool definitions")
     
     # List subcommand
     list_parser = subparsers.add_parser("list", help="List all generated agents")
@@ -333,6 +335,9 @@ Examples:
                 provider = get_input("Provider (google/huggingface/huggingchat)", args.provider)
                 template = get_input("Custom Template Path (optional)", "")
                 db_path = get_input("SQLite Database Path (optional)", "")
+                enable_multi_step_input = get_input("Enable Multi-Step Workflow? (y/n)", "n")
+                enable_multi_step = enable_multi_step_input.lower() == "y"
+                tools_path = get_input("Tools JSON file path (optional)", "")
                 
                 # Validate provider
                 if provider not in ["google", "huggingface", "huggingchat"]:
@@ -347,6 +352,8 @@ Examples:
                 provider = args.provider
                 template = args.template
                 db_path = args.db_path
+                enable_multi_step = args.enable_multi_step
+                tools_path = args.tools
             
             # Validate agent name
             try:
@@ -359,6 +366,21 @@ Examples:
             if model:
                 os.environ["GOOGLE_GEMINI_MODEL"] = model
             
+            # Load tools from JSON file if provided
+            tools = None
+            if tools_path:
+                try:
+                    with open(tools_path, 'r') as f:
+                        tools = json.load(f)
+                        if not isinstance(tools, list):
+                            print(f"Warning: Tools file should contain a JSON array. Converting to list.")
+                            tools = [tools]
+                except FileNotFoundError:
+                    print(f"Warning: Tools file '{tools_path}' not found. Continuing without tools.")
+                except json.JSONDecodeError as e:
+                    print(f"Error: Invalid JSON in tools file: {e}")
+                    sys.exit(1)
+            
             # Create an instance of the AgentBuilder
             builder = AgentBuilder(template_path=template)
             
@@ -370,7 +392,9 @@ Examples:
                 example_task=task, 
                 model=default_model,
                 provider=provider,
-                db_path=db_path if db_path else None
+                db_path=db_path if db_path else None,
+                enable_multi_step=enable_multi_step,
+                tools=tools
             )
             
             # Define the output path for the generated agent

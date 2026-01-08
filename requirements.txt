@@ -10,3 +10,4 @@ slowapi
 tenacity
 requests
 pyyaml
+gradio
