@@ -34,6 +34,13 @@ class ExecutionStatus(Enum):
     AGENT_NOT_FOUND = "agent_not_found"
 
 
+# Constants
+API_KEY_ERROR_MESSAGE = (
+    "API key not found. Set GOOGLE_GEMINI_KEY, "
+    "HUGGINGFACEHUB_API_TOKEN, or GITHUB_COPILOT_TOKEN"
+)
+
+
 @dataclass
 class ExecutionResult:
     """Result of agent execution."""
@@ -87,6 +94,61 @@ class AgentEngine:
             os.environ.get("HUGGINGFACEHUB_API_TOKEN") or
             os.environ.get("GITHUB_COPILOT_TOKEN")
         )
+
+    def _check_api_key(self, start_time: float) -> Optional[ExecutionResult]:
+        """
+        Check if API key is available.
+        
+        :param start_time: Start time for execution timing
+        :return: ExecutionResult with error if API key is missing, None otherwise
+        """
+        if not self.api_key:
+            return ExecutionResult(
+                status=ExecutionStatus.API_KEY_MISSING,
+                output="",
+                error=API_KEY_ERROR_MESSAGE,
+                execution_time=time.time() - start_time
+            )
+        return None
+
+    def _determine_source_type(self, agent_source: Union[str, Path]) -> bool:
+        """
+        Determine if agent source is a file path or code string.
+        
+        :param agent_source: Path to agent file or code string
+        :return: True if source is a file, False if it's code string
+        """
+        if isinstance(agent_source, Path):
+            return True
+        elif isinstance(agent_source, str):
+            if '\n' in agent_source:
+                return False
+            elif (os.path.exists(agent_source) or
+                  agent_source.endswith('.py')):
+                return True
+        return False
+
+    def _validate_agent_path(
+        self, 
+        agent_source: Union[str, Path], 
+        start_time: float
+    ) -> Optional[ExecutionResult]:
+        """
+        Validate that agent file exists.
+        
+        :param agent_source: Path to agent file
+        :param start_time: Start time for execution timing
+        :return: ExecutionResult with error if file not found, None otherwise
+        """
+        agent_path = Path(agent_source)
+        if not agent_path.exists():
+            return ExecutionResult(
+                status=ExecutionStatus.AGENT_NOT_FOUND,
+                output="",
+                error=f"Agent file not found: {agent_source}",
+                execution_time=time.time() - start_time
+            )
+        return None
 
     def _is_copilot_token(self, token: Optional[str]) -> bool:
         """Check if token is a GitHub Copilot bearer token."""
@@ -191,17 +253,9 @@ class AgentEngine:
 
         try:
             # Check API key
-            if not self.api_key:
-                error_msg = (
-                    "API key not found. Set GOOGLE_GEMINI_KEY, "
-                    "HUGGINGFACEHUB_API_TOKEN, or GITHUB_COPILOT_TOKEN"
-                )
-                return ExecutionResult(
-                    status=ExecutionStatus.API_KEY_MISSING,
-                    output="",
-                    error=error_msg,
-                    execution_time=time.time() - start_time
-                )
+            api_key_error = self._check_api_key(start_time)
+            if api_key_error:
+                return api_key_error
 
             # Check if using GitHub Copilot API
             copilot_client = self._get_copilot_client()
@@ -282,17 +336,9 @@ class AgentEngine:
 
         try:
             # Check API key
-            if not self.api_key:
-                error_msg = (
-                    "API key not found. Set GOOGLE_GEMINI_KEY, "
-                    "HUGGINGFACEHUB_API_TOKEN, or GITHUB_COPILOT_TOKEN"
-                )
-                return ExecutionResult(
-                    status=ExecutionStatus.API_KEY_MISSING,
-                    output="",
-                    error=error_msg,
-                    execution_time=time.time() - start_time
-                )
+            api_key_error = self._check_api_key(start_time)
+            if api_key_error:
+                return api_key_error
 
             # Check if using GitHub Copilot API
             copilot_client = self._get_copilot_client()
@@ -390,8 +436,6 @@ class AgentEngine:
         :param start_time: Start time for execution timing
         :return: ExecutionResult with status and output
         """
-        import time
-
         try:
             # Use Copilot chat completion API
             messages = [{"role": "user", "content": task}]
