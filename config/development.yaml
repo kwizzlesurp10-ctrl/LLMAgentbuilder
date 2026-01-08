@@ -1,0 +1,44 @@
+# Development Environment Configuration
+# Settings optimized for local development
+
+server:
+  host: "127.0.0.1"
+  port: 7860
+  workers: 2
+  timeout: 60
+  reload: true  # Enable auto-reload for development
+
+providers:
+  google:
+    api_key_env: GOOGLE_GEMINI_KEY
+    default_model: gemini-1.5-pro
+    rate_limit: 50  # Higher rate limit for development
+    timeout: 60
+  anthropic:
+    api_key_env: ANTHROPIC_API_KEY
+    default_model: claude-3-5-sonnet-20241022
+    rate_limit: 50
+    timeout: 60
+  huggingface:
+    api_key_env: HUGGINGFACEHUB_API_TOKEN
+    default_model: meta-llama/Meta-Llama-3-8B-Instruct
+    rate_limit: 50
+    timeout: 120
+
+database:
+  workflow_db: workflow.db
+  pool_size: 2
+  timeout: 30
+
+logging:
+  level: DEBUG  # Verbose logging for development
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: null  # Console only for development
+  max_bytes: 10485760
+  backup_count: 5
+
+environment: development
+generated_agents_dir: generated_agents
+template_dir: null
+enable_metrics: false
+enable_rate_limiting: false  # Disable rate limiting for easier testing

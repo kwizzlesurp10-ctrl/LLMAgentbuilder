@@ -196,6 +196,86 @@ llm-agent-builder batch agents.json
 - 🧪 **Test Agent**: Execute agents directly in the browser (sandboxed)
 - 📥 **Auto-Download**: Generated agents automatically download
 
+## ⚙️ Configuration
+
+LLM Agent Builder supports comprehensive YAML-based configuration with environment-specific settings and environment variable overrides.
+
+### Quick Configuration
+
+```bash
+# View current configuration
+llm-agent-builder config show
+
+# Validate a configuration file
+llm-agent-builder config validate --file config/production.yaml
+
+# Generate a configuration template
+llm-agent-builder config generate --output my-config.yaml
+
+# Use a custom configuration
+llm-agent-builder --config my-config.yaml web
+```
+
+### Configuration Files
+
+Configuration files are located in the `config/` directory:
+
+- `config/default.yaml` - Default settings for all environments
+- `config/development.yaml` - Development overrides
+- `config/production.yaml` - Production settings
+- `config/test.yaml` - Test environment settings
+
+### Environment Variable Overrides
+
+Override any configuration value using environment variables:
+
+```bash
+# Server settings
+SERVER__PORT=8080
+SERVER__HOST="localhost"
+
+# Provider settings
+PROVIDERS__GOOGLE__RATE_LIMIT=50
+
+# Enable/disable features
+ENABLE_RATE_LIMITING=false
+ENVIRONMENT=development
+```
+
+### Configuration Priority
+
+1. Environment variables (highest priority)
+2. Environment-specific config file (`config/{ENV}.yaml`)
+3. Default config file (`config/default.yaml`)
+4. Built-in defaults
+
+### Example Configuration
+
+```yaml
+server:
+  host: "0.0.0.0"
+  port: 7860
+  workers: 4
+  reload: false
+
+providers:
+  google:
+    api_key_env: GOOGLE_GEMINI_KEY
+    default_model: gemini-1.5-pro
+    rate_limit: 20
+
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: null
+
+environment: production
+enable_metrics: true
+enable_rate_limiting: true
+```
+
+For complete configuration documentation, see [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
+
 ## 🏗️ Architecture
 
 ### Project Structure
