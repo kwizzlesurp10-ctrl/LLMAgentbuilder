@@ -1,18 +1,21 @@
-import subprocess
-import tempfile
 import os
+import subprocess
 import sys
+import tempfile
 
 try:
     import resource
+
+    HAS_RESOURCE = True
 except ImportError:
-    resource = None
+    HAS_RESOURCE = False
+    resource = None  # type: ignore[assignment]
 
 
 def run_in_sandbox(code: str, task: str, timeout: int = 30, memory_limit_mb: int = 512) -> str:
     """
     Executes the provided Python code in a sandboxed environment.
-    
+
     :param code: The Python code to execute.
     :param task: The task argument to pass to the script.
     :param timeout: Execution timeout in seconds.
@@ -21,14 +24,14 @@ def run_in_sandbox(code: str, task: str, timeout: int = 30, memory_limit_mb: int
     """
 
     # Create a temporary file for the code
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as temp_file:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as temp_file:
         temp_file.write(code)
         temp_file_path = temp_file.name
 
     try:
         # Define resource limits
         def set_limits():
-            if resource:
+            if HAS_RESOURCE and resource:
                 # CPU time limit (soft, hard)
                 resource.setrlimit(resource.RLIMIT_CPU, (timeout, timeout + 5))
 
@@ -42,11 +45,7 @@ def run_in_sandbox(code: str, task: str, timeout: int = 30, memory_limit_mb: int
         cmd = [sys.executable, temp_file_path, "--task", task]
 
         process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            preexec_fn=set_limits
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, preexec_fn=set_limits
         )
 
         try:

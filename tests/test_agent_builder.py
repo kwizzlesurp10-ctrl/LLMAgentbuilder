@@ -1,10 +1,11 @@
-import pytest
 from llm_agent_builder.agent_builder import AgentBuilder
+
 
 def test_agent_builder_initialization():
     builder = AgentBuilder()
     assert builder.env is not None
     assert builder.template is not None
+
 
 def test_build_agent_content():
     builder = AgentBuilder()

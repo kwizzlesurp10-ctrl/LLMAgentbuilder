@@ -1,4 +1,6 @@
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, field_validator
 from typing import Optional, Dict, Any, List
 from llm_agent_builder.providers import ProviderRegistry
@@ -28,14 +30,14 @@ class GenerateRequest(BaseModel):
     enable_multi_step: bool = False  # Enable multi-step workflow capabilities
     tools: Optional[List[Dict[str, Any]]] = None  # List of tool definitions for tool calling
 
-    @field_validator('name')
+    @field_validator("name")
     @classmethod
     def validate_name(cls, v):
         if not v or not v.strip():
             raise ValueError("Agent name cannot be empty")
         # Ensure name is a valid Python class name
         trimmed = v.strip()
-        if not trimmed[0].isalpha() and trimmed[0] != '_':
+        if not trimmed[0].isalpha() and trimmed[0] != "_":
             raise ValueError("Agent name must start with a letter or underscore")
         return trimmed
 
@@ -73,6 +75,7 @@ class GenerateRequest(BaseModel):
 
 class TestAgentRequest(BaseModel):
     """Request model for testing an agent."""
+
     agent_code: Optional[str] = None
     agent_path: Optional[str] = None
     task: str
@@ -81,6 +84,7 @@ class TestAgentRequest(BaseModel):
 
 class AgentVersion(BaseModel):
     """Model representing an agent version."""
+
     id: str
     name: str
     version: str
@@ -96,6 +100,7 @@ class AgentVersion(BaseModel):
 
 class AgentVersionResponse(BaseModel):
     """Response model for agent version operations."""
+
     versions: List[AgentVersion]
     total: int
     page: int = 1
@@ -104,6 +109,7 @@ class AgentVersionResponse(BaseModel):
 
 class AgentExport(BaseModel):
     """Model for exporting agent configuration."""
+
     name: str
     prompt: str
     task: str
@@ -117,12 +123,13 @@ class AgentExport(BaseModel):
 
 class AgentImportRequest(BaseModel):
     """Request model for importing agent configuration."""
+
     config: AgentExport
 
 
 class EnhancePromptRequest(BaseModel):
     """Request model for enhancing a system prompt."""
+
     keyword: str
     provider: str = "google"
     model: str
-
