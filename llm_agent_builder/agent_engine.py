@@ -371,7 +371,6 @@ class AgentEngine:
                 agent_file = str(agent_path.absolute())
             else:
                 # Create temporary file from code string
-                with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as temp_file:
                 with tempfile.NamedTemporaryFile(
                     mode='w', suffix='.py', delete=False
                 ) as temp_file:
