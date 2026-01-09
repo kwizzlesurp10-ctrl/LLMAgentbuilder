@@ -32,7 +32,9 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "llm-agent-builder=llm_agent_builder.cli:main",
+            "llm-agent-builder=llm_agent_builder.__main__:main",
+            "llm-agent-builder-cli=llm_agent_builder.cli:main",
+            "llm-agent-builder-serve=llm_agent_builder.server_runner:run_web_server",
         ],
     },
 )
