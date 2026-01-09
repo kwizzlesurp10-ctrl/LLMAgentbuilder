@@ -42,6 +42,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY llm_agent_builder/ ./llm_agent_builder/
 COPY server/ ./server/
 COPY main.py .
+COPY app.py .
 
 # Copy optional workflow files (comment out if not present)
 COPY workflow_impl.py ./
@@ -69,5 +70,4 @@ LABEL maintainer="LLMAgentBuilder Team" \
 
 # Run the application
 # Host 0.0.0.0 is required for Docker and HF Spaces
-# Use unified entry point with --serve flag
-CMD ["python", "main.py", "--serve"]
+CMD ["python", "app.py"]

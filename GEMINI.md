@@ -41,7 +41,7 @@ The project is structured as a Python package with a clear separation between th
 1.  **Configure Environment:**
     Set your Anthropic API key (required for the *generated* agents to run):
     ```bash
-    export GOOGLE_GEMINI_KEY="sk-ant-..."
+    export ANTHROPIC_API_KEY="sk-ant-..."
     ```
     Optionally set the model:
     ```bash
@@ -67,4 +67,4 @@ The project is structured as a Python package with a clear separation between th
 ## Development Conventions
 *   **Templating:** Uses Jinja2 for code generation. Changes to the agent structure should be made in `llm_agent_builder/templates/`.
 *   **Dependency Management:** Dependencies (`anthropic`, `Jinja2`, `python-dotenv`) are listed in `requirements.txt`.
-*   **Secrets:** API keys are managed via environment variables (`GOOGLE_GEMINI_KEY`) and are never hardcoded.
+*   **Secrets:** API keys are managed via environment variables (`ANTHROPIC_API_KEY`) and are never hardcoded.
