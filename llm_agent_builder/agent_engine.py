@@ -15,6 +15,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
+# Import configuration manager
+from llm_agent_builder.config import get_config_manager
+
 # Import GitHub Copilot client if available
 try:
     from llm_agent_builder.copilot_client import CopilotClient
@@ -89,11 +92,12 @@ class AgentEngine:
 
     def _get_api_key(self) -> Optional[str]:
         """Get API key from environment variables."""
-        return (
-            os.environ.get("GOOGLE_GEMINI_KEY") or
-            os.environ.get("HUGGINGFACEHUB_API_TOKEN") or
-            os.environ.get("GITHUB_COPILOT_TOKEN")
-        )
+        config_manager = get_config_manager()
+        api_key = config_manager.get_any_api_key()
+        if not api_key:
+            # Fallback to GitHub Copilot token
+            api_key = os.environ.get("GITHUB_COPILOT_TOKEN")
+        return api_key
 
     def _check_api_key(self, start_time: float) -> Optional[ExecutionResult]:
         """

@@ -68,9 +68,15 @@ def test_agent(agent_path: str, task: Optional[str] = None) -> None:
         print(f"Error: Agent file '{agent_path}' not found.")
         sys.exit(1)
     
-    api_key = os.environ.get("GOOGLE_GEMINI_KEY") or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
+    # Use ConfigManager to get API key
+    config_manager = get_config_manager()
+    api_key = config_manager.get_any_api_key()
+    
     if not api_key:
-        print("Error: API key not found. Please set GOOGLE_GEMINI_KEY or HUGGINGFACEHUB_API_TOKEN.")
+        print("Error: No API key found. Please configure at least one provider:")
+        status = config_manager.get_configuration_status()
+        for provider_name, info in status.items():
+            print(f"  - {info['name']}: Set {info['env_var']}")
         sys.exit(1)
 
     if not task:
@@ -416,7 +422,12 @@ Examples:
                 f.write(agent_code)
 
             print(f"\n✓ Agent '{name}' has been created and saved to '{output_path}'")
-            print("To use the agent, you need to set the GOOGLE_GEMINI_KEY environment variable.")
+            print("\nTo use the agent, ensure you have configured the appropriate API key:")
+            config_manager = get_config_manager()
+            status = config_manager.get_configuration_status()
+            for provider_key, info in status.items():
+                if info['configured']:
+                    print(f"  ✓ {info['name']}: {info['env_var']} is set")
             
         elif args.command == "list":
             list_agents(args.output)
