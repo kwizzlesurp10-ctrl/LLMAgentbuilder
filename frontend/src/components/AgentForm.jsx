@@ -7,8 +7,11 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
         task: '',
         provider: 'google',
         model: 'gemini-1.5-pro',
-        stream: false
+        stream: false,
+        enable_multi_step: false,
+        tools: null
     });
+    const [toolsJson, setToolsJson] = useState('');
     const [isExecuting, setIsExecuting] = useState(false);
     const [enhanceLoading, setEnhanceLoading] = useState(false);
     const [enhancementOptions, setEnhancementOptions] = useState(null);
@@ -279,6 +282,50 @@ const AgentForm = ({ onGenerate, isLoading, generatedCode, onTestResult }) => {
                         />
                         Stream Response
                     </label>
+                </div>
+
+                <div className="form-group checkbox-group">
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="enable_multi_step"
+                            checked={formData.enable_multi_step}
+                            onChange={handleChange}
+                        />
+                        Enable Multi-Step Workflow
+                    </label>
+                    <small style={{ display: 'block', marginTop: '0.5rem', color: '#888' }}>
+                        Allows the agent to iterate and refine responses over multiple steps
+                    </small>
+                </div>
+
+                <div className="form-group">
+                    <label htmlFor="tools">Tools (JSON - Optional)</label>
+                    <textarea
+                        id="tools"
+                        name="tools"
+                        value={toolsJson}
+                        onChange={(e) => {
+                            setToolsJson(e.target.value);
+                            try {
+                                if (e.target.value.trim()) {
+                                    const parsed = JSON.parse(e.target.value);
+                                    setFormData(prev => ({ ...prev, tools: Array.isArray(parsed) ? parsed : [parsed] }));
+                                } else {
+                                    setFormData(prev => ({ ...prev, tools: null }));
+                                }
+                            } catch (err) {
+                                // Invalid JSON, but don't block submission - let backend validate
+                                setFormData(prev => ({ ...prev, tools: null }));
+                            }
+                        }}
+                        placeholder='[{"name": "search_web", "description": "Search the web", "input_schema": {"type": "object", "properties": {"query": {"type": "string"}}}}]'
+                        rows="6"
+                        style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
+                    />
+                    <small style={{ display: 'block', marginTop: '0.5rem', color: '#888' }}>
+                        Define tools the agent can use. Must be valid JSON array of tool definitions.
+                    </small>
                 </div>
 
                 <div style={{ display: 'flex', gap: '1rem' }}>
