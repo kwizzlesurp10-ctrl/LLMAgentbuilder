@@ -1,0 +1,50 @@
+[
+  {
+    "name": "search_web",
+    "description": "Search the web for information",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "The search query"
+        }
+      },
+      "required": ["query"]
+    }
+  },
+  {
+    "name": "calculate",
+    "description": "Perform mathematical calculations",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "expression": {
+          "type": "string",
+          "description": "Mathematical expression to evaluate (e.g., '2 + 2', 'sqrt(16)')"
+        }
+      },
+      "required": ["expression"]
+    }
+  },
+  {
+    "name": "get_weather",
+    "description": "Get current weather information for a location",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "location": {
+          "type": "string",
+          "description": "City name or location"
+        },
+        "units": {
+          "type": "string",
+          "enum": ["celsius", "fahrenheit"],
+          "description": "Temperature units",
+          "default": "celsius"
+        }
+      },
+      "required": ["location"]
+    }
+  }
+]

@@ -11,20 +11,21 @@ app_port: 7860
 
 > **A powerful, production-ready tool for generating custom LLM agents via CLI, web UI, and Hugging Face Spaces**
 
-LLM Agent Builder is a comprehensive Python application that enables developers to quickly scaffold and generate AI agents using Anthropic's Claude models or Hugging Face models. Built with FastAPI, React 19, and modern Python tooling.
+LLM Agent Builder is a comprehensive Python application that enables developers to quickly scaffold and generate AI agents using multiple LLM providers including Google Gemini, Anthropic Claude, HuggingFace, and HuggingChat models. Built with FastAPI, React 19, and modern Python tooling.
 
 ## ✨ Features
 
-- 🚀 **Multi-Provider Support**: Generate agents for Anthropic Claude, HuggingFace, and HuggingChat models
+- 🚀 **Multi-Provider Support**: Generate agents for Google Gemini, Anthropic Claude, OpenAI, HuggingFace, and HuggingChat models
 - 💬 **HuggingChat Integration**: Full support for HuggingChat's open-source conversational models
 - 🔒 **Advanced Safety**: Built-in content moderation and safety checking with HuggingFace models
 - 🌐 **MCP Integration**: Model Context Protocol support for standardized HuggingFace resource access
 - 🎨 **Modern Web UI**: Beautiful React 19 interface with dark/light theme toggle
-- 💻 **Powerful CLI**: Interactive mode, batch generation, agent testing, and listing
+- 💻 **Powerful CLI**: Interactive mode, batch generation, agent testing, and configuration checking
 - 🔧 **Tool Integration**: Built-in support for tool calling and multi-step workflows
 - 🛡️ **Production Ready**: Rate limiting, retry logic, input validation, and sandboxed execution
 - 📦 **Easy Deployment**: Docker-ready for Hugging Face Spaces with one-command deployment
 - 🧪 **Comprehensive Testing**: Full test coverage with pytest and CI/CD
+- ⚙️ **Centralized Configuration**: Unified configuration management for all LLM providers
 
 ## 🚀 Quick Start
 
@@ -64,54 +65,96 @@ LLM Agent Builder is a comprehensive Python application that enables developers 
 
 4. **Set up your API key:**
 
-   Create a `.env` file:
+   Create a `.env` file based on `.env.example`:
 
    ```bash
-   # For Google Gemini
+   cp .env.example .env
+   ```
+
+   Then edit `.env` and configure at least one provider:
+
+   ```bash
+   # For Google Gemini (Recommended)
    GOOGLE_GEMINI_KEY="your-google-gemini-api-key-here"
+   GOOGLE_GEMINI_MODEL="gemini-1.5-pro"
+
+   # For Anthropic Claude (Optional)
+   ANTHROPIC_API_KEY="your-anthropic-api-key-here"
    ANTHROPIC_MODEL="claude-3-5-sonnet-20241022"
 
-   # For Hugging Face (optional)
+   # For OpenAI (Optional)
+   OPENAI_API_KEY="your-openai-api-key-here"
+   OPENAI_MODEL="gpt-4"
+
+   # For HuggingFace / HuggingChat (Optional)
    HUGGINGFACEHUB_API_TOKEN="your-hf-token-here"
+   ```
+
+   **Check your configuration:**
+
+   ```bash
+   llm-agent-builder check-config
    ```
 
 ## 📖 Usage
 
-### Web Interface (Default)
+### Quick Start
 
-The easiest way to use LLM Agent Builder is via the web interface.
-
-1. **Launch the application:**
-
-   ```bash
-   python main.py
-   # or
-   llm-agent-builder
-   ```
-
-2. **Access the UI:**
-
-   Open your browser to `http://localhost:7860`.
-
-   The web interface allows you to:
-   - Generate agents using a simple form
-   - Preview and copy generated code
-   - Test agents directly in the browser
-   - Switch between dark and light themes
-
-### Command Line Interface
-
-You can still use the CLI for scripting or if you prefer the terminal.
-
-#### Generate an Agent
-
-**Interactive Mode:**
+The easiest way to use LLM Agent Builder is to simply run it without any arguments - it will launch the web interface by default:
 
 ```bash
-llm-agent-builder generate --interactive
+python main.py
+# or if installed via pip:
+llm-agent-builder
 ```
 
-**Command-Line Mode:**
+This will start the web interface at `http://localhost:7860`.
+
+### Modes of Operation
+
+LLM Agent Builder supports two modes:
+
+1. **Web Mode (Default)**: User-friendly web interface
+2. **CLI Mode**: Command-line interface for automation and scripting
+
+#### Web Mode
+
+Launch the web interface:
+
+```bash
+# Default (launches web interface)
+llm-agent-builder
+
+# Explicit web mode with custom host/port
+llm-agent-builder --serve --host 127.0.0.1 --port 8080
+
+# Or use the dedicated serve command
+llm-agent-builder-serve
+```
+
+The web interface provides:
+- Interactive agent generation form
+- Live code preview
+- Direct agent testing in browser
+- Copy-to-clipboard functionality
+- Dark/light theme toggle
+
+#### CLI Mode
+
+Use CLI commands for automation and batch operations:
+
+**Generate an Agent:**
+
+Interactive Mode:
+
+```bash
+# Force CLI mode for interactive generation
+llm-agent-builder --cli generate
+# or use the dedicated CLI command
+llm-agent-builder-cli generate
+```
+
+Command-Line Mode:
 
 ```bash
 llm-agent-builder generate \
@@ -166,7 +209,29 @@ Then run:
 llm-agent-builder batch agents.json
 ```
 
-### Web Interface
+### Available Commands
+
+LLM Agent Builder provides three entry point commands:
+
+1. **`llm-agent-builder`** - Unified entry point (defaults to web mode)
+   - Run without args: Launches web interface
+   - Run with CLI commands: Routes to CLI mode
+   - Use `--serve` to explicitly launch web mode
+   - Use `--cli` to force CLI mode
+
+2. **`llm-agent-builder-cli`** - Direct CLI access
+   - Always uses CLI mode
+   - Useful for scripts and automation
+
+3. **`llm-agent-builder-serve`** - Direct web server access
+   - Always launches web interface
+   - Useful for server deployments
+
+### Web Interface (Deprecated Direct Access)
+
+**Note:** The standalone backend/frontend setup is now unified. Simply run `llm-agent-builder` to access the web interface.
+
+For development with separate frontend/backend:
 
 1. **Start the Backend Server:**
 
@@ -188,6 +253,23 @@ llm-agent-builder batch agents.json
 
    Open your browser to `http://localhost:5173`.
 
+### Docker Deployment
+
+The Docker image now uses the unified entry point and defaults to web mode:
+
+```bash
+# Build the image
+docker build -t llm-agent-builder .
+
+# Run with default web mode
+docker run -p 7860:7860 -e GOOGLE_GEMINI_KEY="your-key" llm-agent-builder
+
+# Run with CLI mode (example: list agents)
+docker run llm-agent-builder python main.py --cli list
+```
+
+The container exposes port 7860 for the web interface.
+
 ### Features in Web UI
 
 - ✨ **Live Code Preview**: See generated code in real-time
@@ -195,6 +277,86 @@ llm-agent-builder batch agents.json
 - 📋 **Copy to Clipboard**: One-click code copying
 - 🧪 **Test Agent**: Execute agents directly in the browser (sandboxed)
 - 📥 **Auto-Download**: Generated agents automatically download
+
+## ⚙️ Configuration
+
+LLM Agent Builder supports comprehensive YAML-based configuration with environment-specific settings and environment variable overrides.
+
+### Quick Configuration
+
+```bash
+# View current configuration
+llm-agent-builder config show
+
+# Validate a configuration file
+llm-agent-builder config validate --file config/production.yaml
+
+# Generate a configuration template
+llm-agent-builder config generate --output my-config.yaml
+
+# Use a custom configuration
+llm-agent-builder --config my-config.yaml web
+```
+
+### Configuration Files
+
+Configuration files are located in the `config/` directory:
+
+- `config/default.yaml` - Default settings for all environments
+- `config/development.yaml` - Development overrides
+- `config/production.yaml` - Production settings
+- `config/test.yaml` - Test environment settings
+
+### Environment Variable Overrides
+
+Override any configuration value using environment variables:
+
+```bash
+# Server settings
+SERVER__PORT=8080
+SERVER__HOST="localhost"
+
+# Provider settings
+PROVIDERS__GOOGLE__RATE_LIMIT=50
+
+# Enable/disable features
+ENABLE_RATE_LIMITING=false
+ENVIRONMENT=development
+```
+
+### Configuration Priority
+
+1. Environment variables (highest priority)
+2. Environment-specific config file (`config/{ENV}.yaml`)
+3. Default config file (`config/default.yaml`)
+4. Built-in defaults
+
+### Example Configuration
+
+```yaml
+server:
+  host: "0.0.0.0"
+  port: 7860
+  workers: 4
+  reload: false
+
+providers:
+  google:
+    api_key_env: GOOGLE_GEMINI_KEY
+    default_model: gemini-1.5-pro
+    rate_limit: 20
+
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: null
+
+environment: production
+enable_metrics: true
+enable_rate_limiting: true
+```
+
+For complete configuration documentation, see [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 
 ## 🏗️ Architecture
 
@@ -234,17 +396,51 @@ LLMAgentbuilder/
 
 ### Multi-Step Workflows
 
-Agents can be generated with multi-step workflow capabilities:
+Agents can be generated with multi-step workflow capabilities that allow iterative refinement:
+
+**CLI:**
+
+```bash
+llm-agent-builder generate \
+  --name "ResearchAgent" \
+  --prompt "You are a research assistant" \
+  --task "Research topic X" \
+  --enable-multi-step
+```
+
+**Python:**
 
 ```python
+from llm_agent_builder.agent_builder import AgentBuilder
+
+builder = AgentBuilder()
+code = builder.build_agent(
+    agent_name="ResearchAgent",
+    prompt="You are a research assistant",
+    example_task="Research topic X",
+    enable_multi_step=True
+)
+
 # In your generated agent
-agent = MyAgent(api_key="your-key")
+agent = ResearchAgent(api_key="your-key")
 result = agent.run_multi_step("Complete this complex task", max_steps=5)
 ```
 
 ### Tool Integration
 
-Generate agents with tool calling support:
+Generate agents with tool calling support to extend capabilities:
+
+**CLI:**
+
+```bash
+llm-agent-builder generate \
+  --name "ToolAgent" \
+  --prompt "You are an agent with tools" \
+  --task "Use tools to complete tasks" \
+  --tools examples/tools_example.json
+```
+
+**Python:**
 
 ```python
 builder = AgentBuilder()
@@ -264,9 +460,11 @@ code = builder.build_agent(
             }
         }
     ],
-    enable_multi_step=True
+    enable_multi_step=True  # Can combine with multi-step!
 )
 ```
+
+**📖 See [MULTI_STEP_AND_TOOLS_GUIDE.md](docs/MULTI_STEP_AND_TOOLS_GUIDE.md) for comprehensive documentation and examples.**
 
 ### API Endpoints
 
@@ -366,7 +564,7 @@ LLM Agent Builder includes comprehensive safety features powered by HuggingFace:
 - **Safe Agent Wrapper**: Add safety checking to any agent
 - **Gated Model Support**: Handle models that require approval
 
-See [HUGGINGFACE_GUIDE.md](HUGGINGFACE_GUIDE.md) for detailed safety documentation.
+See [HUGGINGFACE_GUIDE.md](docs/HUGGINGFACE_GUIDE.md) for detailed safety documentation.
 
 ## 🌐 HuggingFace MCP Integration
 
@@ -385,7 +583,7 @@ mcp = HuggingFaceMCPClient()
 models = mcp.call_tool("search_models", {"query": "sentiment", "limit": 5})
 ```
 
-See [HUGGINGFACE_GUIDE.md](HUGGINGFACE_GUIDE.md) for complete MCP documentation.
+See [HUGGINGFACE_GUIDE.md](docs/HUGGINGFACE_GUIDE.md) for complete MCP documentation.
 
 ## 🤝 Contributing
 
@@ -426,12 +624,164 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📚 Additional Resources
 
-- [HuggingFace Integration Guide](HUGGINGFACE_GUIDE.md) - **Complete guide to HuggingChat, MCP, and safety features**
+- [HuggingFace Integration Guide](docs/HUGGINGFACE_GUIDE.md) - **Complete guide to HuggingChat, MCP, and safety features**
 - [Anthropic API Documentation](https://docs.anthropic.com/)
 - [Hugging Face Hub Documentation](https://huggingface.co/docs/hub/)
 - [HuggingChat Models](https://huggingface.co/chat/models)
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [React Documentation](https://react.dev/)
+
+## 🔌 Extending with Custom Providers
+
+LLM Agent Builder uses a provider registry pattern that makes it easy to add support for new LLM providers without modifying core code.
+
+### Provider Architecture
+
+The system uses an abstract base class `LLMProvider` that defines the interface all providers must implement:
+
+- `get_template_name()` - Returns the Jinja2 template file for generating agents
+- `validate_config(config)` - Validates provider-specific configuration
+- `get_env_var_name()` - Returns the environment variable name for API keys
+- `get_default_model()` - Returns the default model for the provider
+- `get_supported_models()` - Returns list of supported models
+
+### Adding a New Provider
+
+To add a new LLM provider, follow these steps:
+
+#### 1. Create a Provider Class
+
+Create a new file `llm_agent_builder/providers/your_provider.py`:
+
+```python
+from typing import Dict, List
+from .base import LLMProvider, register_provider
+
+
+@register_provider("your_provider")
+class YourProvider(LLMProvider):
+    """Provider for Your LLM Service."""
+    
+    def get_template_name(self) -> str:
+        """Return the template file for this provider."""
+        return "agent_template_your_provider.py.j2"
+    
+    def validate_config(self, config: Dict) -> bool:
+        """Validate provider-specific configuration."""
+        model = config.get("model")
+        if model and model not in self.get_supported_models():
+            return False
+        return True
+    
+    def get_env_var_name(self) -> str:
+        """Return the environment variable name for API key."""
+        return "YOUR_PROVIDER_API_KEY"
+    
+    def get_default_model(self) -> str:
+        """Return the default model."""
+        return "your-default-model"
+    
+    def get_supported_models(self) -> List[str]:
+        """Return list of supported models."""
+        return [
+            "your-default-model",
+            "your-other-model",
+        ]
+```
+
+#### 2. Create a Template
+
+Create a Jinja2 template file `llm_agent_builder/templates/agent_template_your_provider.py.j2`:
+
+```python
+import os
+from typing import Optional
+
+class {{ agent_name }}:
+    def __init__(self, api_key: str):
+        # Initialize your provider's client
+        self.api_key = api_key
+        self.model = "{{ model }}"
+        self.prompt = "{{ prompt }}"
+    
+    def run(self, task: str) -> str:
+        # Implement your provider's API call
+        # Return the response text
+        pass
+
+if __name__ == '__main__':
+    import os
+    from dotenv import load_dotenv
+    
+    load_dotenv()
+    api_key = os.environ.get("YOUR_PROVIDER_API_KEY")
+    if not api_key:
+        raise ValueError("YOUR_PROVIDER_API_KEY not found")
+    
+    agent = {{ agent_name }}(api_key=api_key)
+    result = agent.run("{{ example_task }}")
+    print(result)
+```
+
+#### 3. Register the Provider
+
+Add the import to `llm_agent_builder/providers/__init__.py`:
+
+```python
+from .your_provider import YourProvider
+
+__all__ = [
+    # ... existing exports
+    'YourProvider',
+]
+```
+
+#### 4. Test Your Provider
+
+Create tests in `tests/test_your_provider.py`:
+
+```python
+from llm_agent_builder.providers import ProviderRegistry
+from llm_agent_builder.agent_builder import AgentBuilder
+
+def test_your_provider_registered():
+    assert ProviderRegistry.is_registered("your_provider")
+
+def test_your_provider_template():
+    provider = ProviderRegistry.get("your_provider")
+    assert provider.get_template_name() == "agent_template_your_provider.py.j2"
+
+def test_build_agent_with_your_provider():
+    builder = AgentBuilder()
+    code = builder.build_agent(
+        agent_name="TestAgent",
+        prompt="Test prompt",
+        example_task="Test task",
+        model="your-default-model",
+        provider="your_provider"
+    )
+    assert "class TestAgent:" in code
+```
+
+### Benefits of the Provider Pattern
+
+- ✅ **Open/Closed Principle**: Add new providers without modifying existing code
+- ✅ **Standardized Interface**: All providers implement the same interface
+- ✅ **Automatic Discovery**: Providers are automatically registered via decorator
+- ✅ **Easy Testing**: Each provider can be tested independently
+- ✅ **Plugin Architecture**: Providers can be developed as separate plugins
+
+### Current Providers
+
+The following providers are currently available:
+
+| Provider | Models | Template | API Key Env Var |
+|----------|--------|----------|-----------------|
+| **google** | gemini-1.5-pro, gemini-1.5-flash | agent_template.py.j2 | GOOGLE_GEMINI_KEY |
+| **anthropic** | claude-3-5-sonnet, claude-3-opus | agent_template.py.j2 | ANTHROPIC_API_KEY |
+| **openai** | gpt-4o, gpt-4-turbo, gpt-4 | agent_template_openai.py.j2 | OPENAI_API_KEY |
+| **huggingface** | Meta-Llama-3-8B-Instruct | agent_template_hf.py.j2 | HUGGINGFACEHUB_API_TOKEN |
+| **huggingchat** | Meta-Llama-3.1-70B-Instruct | agent_template_huggingchat.py.j2 | HUGGINGCHAT_EMAIL |
 
 ## 🐛 Troubleshooting
 
@@ -464,7 +814,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📈 Roadmap
 
-- [ ] Support for OpenAI models
+- [x] Support for OpenAI models (✅ Completed)
+- [x] Provider registry pattern for easy extensibility (✅ Completed)
 - [ ] Agent marketplace/sharing
 - [ ] Visual workflow builder
 - [ ] Agent versioning

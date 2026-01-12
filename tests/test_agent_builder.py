@@ -1,11 +1,12 @@
-import pytest
 from llm_agent_builder.agent_builder import AgentBuilder
+
 
 def test_agent_builder_initialization():
     builder = AgentBuilder()
     assert builder.env is not None
     assert builder._template_cache is not None
     assert isinstance(builder._template_cache, dict)
+
 
 def test_build_agent_content():
     builder = AgentBuilder()
@@ -15,7 +16,7 @@ def test_build_agent_content():
     model = "gemini-1.5-pro"
     provider = "google"
     
-    code = builder.build_agent(agent_name, prompt, example_task, model=model, provider=provider)
+    code = builder.build_agent(agent_name, prompt, example_task, model=model, provider="anthropic")
     
     assert f"class {agent_name}:" in code
     assert f'self.prompt = "{prompt}"' in code

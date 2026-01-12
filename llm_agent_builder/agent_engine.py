@@ -6,16 +6,17 @@ designed for testing agents on HuggingFace Spaces and other server
 environments.
 """
 
+import importlib.util
 import os
 import sys
-import time
-import importlib.util
 import tempfile
-import re
-from pathlib import Path
-from typing import Optional, Dict, Any, Union
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
+
+# Import configuration manager
+from llm_agent_builder.config import get_config_manager
 
 # Pre-compile regex patterns for performance
 _COPILOT_TOKEN_PATTERN = re.compile(r'^(?:ghp_|github_pat_|mock-copilot-)')
@@ -23,6 +24,7 @@ _COPILOT_TOKEN_PATTERN = re.compile(r'^(?:ghp_|github_pat_|mock-copilot-)')
 # Import GitHub Copilot client if available
 try:
     from llm_agent_builder.copilot_client import CopilotClient
+
     COPILOT_AVAILABLE = True
 except ImportError:
     COPILOT_AVAILABLE = False
@@ -30,6 +32,7 @@ except ImportError:
 
 class ExecutionStatus(Enum):
     """Status of agent execution."""
+
     SUCCESS = "success"
     ERROR = "error"
     TIMEOUT = "timeout"
@@ -37,9 +40,17 @@ class ExecutionStatus(Enum):
     AGENT_NOT_FOUND = "agent_not_found"
 
 
+# Constants
+API_KEY_ERROR_MESSAGE = (
+    "API key not found. Set GOOGLE_GEMINI_KEY, "
+    "HUGGINGFACEHUB_API_TOKEN, or GITHUB_COPILOT_TOKEN"
+)
+
+
 @dataclass
 class ExecutionResult:
     """Result of agent execution."""
+
     status: ExecutionStatus
     output: str
     error: Optional[str] = None
@@ -51,7 +62,7 @@ class ExecutionResult:
             "status": self.status.value,
             "output": self.output,
             "error": self.error,
-            "execution_time": self.execution_time
+            "execution_time": self.execution_time,
         }
 
 
@@ -84,11 +95,67 @@ class AgentEngine:
 
     def _get_api_key(self) -> Optional[str]:
         """Get API key from environment variables."""
-        return (
-            os.environ.get("GOOGLE_GEMINI_KEY") or
-            os.environ.get("HUGGINGFACEHUB_API_TOKEN") or
-            os.environ.get("GITHUB_COPILOT_TOKEN")
-        )
+        config_manager = get_config_manager()
+        api_key = config_manager.get_any_api_key()
+        if not api_key:
+            # Fallback to GitHub Copilot token
+            api_key = os.environ.get("GITHUB_COPILOT_TOKEN")
+        return api_key
+
+    def _check_api_key(self, start_time: float) -> Optional[ExecutionResult]:
+        """
+        Check if API key is available.
+        
+        :param start_time: Start time for execution timing
+        :return: ExecutionResult with error if API key is missing, None otherwise
+        """
+        if not self.api_key:
+            return ExecutionResult(
+                status=ExecutionStatus.API_KEY_MISSING,
+                output="",
+                error=API_KEY_ERROR_MESSAGE,
+                execution_time=time.time() - start_time
+            )
+        return None
+
+    def _determine_source_type(self, agent_source: Union[str, Path]) -> bool:
+        """
+        Determine if agent source is a file path or code string.
+        
+        :param agent_source: Path to agent file or code string
+        :return: True if source is a file, False if it's code string
+        """
+        if isinstance(agent_source, Path):
+            return True
+        elif isinstance(agent_source, str):
+            if '\n' in agent_source:
+                return False
+            elif (os.path.exists(agent_source) or
+                  agent_source.endswith('.py')):
+                return True
+        return False
+
+    def _validate_agent_path(
+        self, 
+        agent_source: Union[str, Path], 
+        start_time: float
+    ) -> Optional[ExecutionResult]:
+        """
+        Validate that agent file exists.
+        
+        :param agent_source: Path to agent file
+        :param start_time: Start time for execution timing
+        :return: ExecutionResult with error if file not found, None otherwise
+        """
+        agent_path = Path(agent_source)
+        if not agent_path.exists():
+            return ExecutionResult(
+                status=ExecutionStatus.AGENT_NOT_FOUND,
+                output="",
+                error=f"Agent file not found: {agent_source}",
+                execution_time=time.time() - start_time
+            )
+        return None
 
     def _is_copilot_token(self, token: Optional[str]) -> bool:
         """Check if token is a GitHub Copilot bearer token."""
@@ -141,12 +208,7 @@ class AgentEngine:
         # not imported)
         agent_class = None
         for name, obj in module.__dict__.items():
-            if (
-                isinstance(obj, type) and
-                name[0].isupper() and
-                hasattr(obj, 'run') and
-                callable(getattr(obj, 'run'))
-            ):
+            if isinstance(obj, type) and name[0].isupper() and hasattr(obj, "run") and callable(getattr(obj, "run")):
                 agent_class = obj
                 break
 
@@ -219,13 +281,15 @@ class AgentEngine:
             provided)
         :return: ExecutionResult with status and output
         """
+        import time
+
         start_time = time.time()
 
         try:
             # Check API key
-            error_result = self._check_api_key_or_error(start_time)
-            if error_result:
-                return error_result
+            api_key_error = self._check_api_key(start_time)
+            if api_key_error:
+                return api_key_error
 
             # Check if using GitHub Copilot API
             copilot_client = self._get_copilot_client()
@@ -236,7 +300,15 @@ class AgentEngine:
                 )
 
             # Determine if source is file or code
-            is_file, agent_source = self._determine_agent_source_type(agent_source)
+            is_file = False
+            if isinstance(agent_source, Path):
+                is_file = True
+            elif isinstance(agent_source, str):
+                if "\n" in agent_source:
+                    is_file = False
+                elif (os.path.exists(agent_source) or
+                      agent_source.endswith('.py')):
+                    is_file = True
 
             if is_file:
                 agent_path = Path(agent_source)
@@ -245,7 +317,7 @@ class AgentEngine:
                         status=ExecutionStatus.AGENT_NOT_FOUND,
                         output="",
                         error=f"Agent file not found: {agent_source}",
-                        execution_time=time.time() - start_time
+                        execution_time=time.time() - start_time,
                     )
                 agent_class = self._load_agent_from_file(agent_path)
             else:
@@ -263,31 +335,20 @@ class AgentEngine:
                 result = str(result)
 
             return ExecutionResult(
-                status=ExecutionStatus.SUCCESS,
-                output=result,
-                execution_time=time.time() - start_time
+                status=ExecutionStatus.SUCCESS, output=result, execution_time=time.time() - start_time
             )
 
         except FileNotFoundError as e:
             return ExecutionResult(
-                status=ExecutionStatus.AGENT_NOT_FOUND,
-                output="",
-                error=str(e),
-                execution_time=time.time() - start_time
+                status=ExecutionStatus.AGENT_NOT_FOUND, output="", error=str(e), execution_time=time.time() - start_time
             )
         except Exception as e:
             return ExecutionResult(
-                status=ExecutionStatus.ERROR,
-                output="",
-                error=str(e),
-                execution_time=time.time() - start_time
+                status=ExecutionStatus.ERROR, output="", error=str(e), execution_time=time.time() - start_time
             )
 
     def execute_with_timeout(
-        self,
-        agent_source: Union[str, Path],
-        task: str,
-        agent_name: Optional[str] = None
+        self, agent_source: Union[str, Path], task: str, agent_name: Optional[str] = None
     ) -> ExecutionResult:
         """
         Execute an agent with timeout protection using subprocess.
@@ -302,14 +363,16 @@ class AgentEngine:
         :return: ExecutionResult with status and output
         """
         import subprocess
+        import tempfile
+
         start_time = time.time()
         temp_file_created = False
 
         try:
             # Check API key
-            error_result = self._check_api_key_or_error(start_time)
-            if error_result:
-                return error_result
+            api_key_error = self._check_api_key(start_time)
+            if api_key_error:
+                return api_key_error
 
             # Check if using GitHub Copilot API
             copilot_client = self._get_copilot_client()
@@ -320,7 +383,15 @@ class AgentEngine:
                 )
 
             # Determine if source is file or code
-            is_file, agent_source = self._determine_agent_source_type(agent_source)
+            is_file = False
+            if isinstance(agent_source, Path):
+                is_file = True
+            elif isinstance(agent_source, str):
+                if "\n" in agent_source:
+                    is_file = False
+                elif (os.path.exists(agent_source) or
+                      agent_source.endswith('.py')):
+                    is_file = True
 
             if is_file:
                 agent_path = Path(agent_source)
@@ -329,7 +400,7 @@ class AgentEngine:
                         status=ExecutionStatus.AGENT_NOT_FOUND,
                         output="",
                         error=f"Agent file not found: {agent_source}",
-                        execution_time=time.time() - start_time
+                        execution_time=time.time() - start_time,
                     )
                 agent_file = str(agent_path.absolute())
             else:
@@ -350,7 +421,7 @@ class AgentEngine:
                     capture_output=True,
                     text=True,
                     timeout=self.timeout,
-                    env={**os.environ, **self._get_env_with_api_key()}
+                    env={**os.environ, **self._get_env_with_api_key()},
                 )
 
                 output = result.stdout
@@ -359,16 +430,14 @@ class AgentEngine:
 
                 if result.returncode == 0:
                     return ExecutionResult(
-                        status=ExecutionStatus.SUCCESS,
-                        output=output,
-                        execution_time=time.time() - start_time
+                        status=ExecutionStatus.SUCCESS, output=output, execution_time=time.time() - start_time
                     )
                 else:
                     return ExecutionResult(
                         status=ExecutionStatus.ERROR,
                         output=output,
                         error=f"Agent exited with code {result.returncode}",
-                        execution_time=time.time() - start_time
+                        execution_time=time.time() - start_time,
                     )
 
             except subprocess.TimeoutExpired:
@@ -376,7 +445,7 @@ class AgentEngine:
                     status=ExecutionStatus.TIMEOUT,
                     output="",
                     error=f"Execution timed out after {self.timeout} seconds",
-                    execution_time=time.time() - start_time
+                    execution_time=time.time() - start_time,
                 )
             finally:
                 # Clean up temp file if we created it
@@ -385,18 +454,11 @@ class AgentEngine:
 
         except Exception as e:
             return ExecutionResult(
-                status=ExecutionStatus.ERROR,
-                output="",
-                error=str(e),
-                execution_time=time.time() - start_time
+                status=ExecutionStatus.ERROR, output="", error=str(e), execution_time=time.time() - start_time
             )
 
     def _execute_with_copilot(
-        self,
-        agent_source: Union[str, Path],
-        task: str,
-        copilot_client: Any,
-        start_time: float
+        self, agent_source: Union[str, Path], task: str, copilot_client: Any, start_time: float
     ) -> ExecutionResult:
         """
         Execute agent using GitHub Copilot API.
@@ -409,6 +471,7 @@ class AgentEngine:
         """
         try:
             # Use Copilot chat completion API
+            messages = [{"role": "user", "content": task}]
             messages = [
                 {"role": "user", "content": task}
             ]
@@ -416,16 +479,14 @@ class AgentEngine:
             response = copilot_client.get_chat_completion(messages=messages)
 
             return ExecutionResult(
-                status=ExecutionStatus.SUCCESS,
-                output=response.content,
-                execution_time=time.time() - start_time
+                status=ExecutionStatus.SUCCESS, output=response.content, execution_time=time.time() - start_time
             )
         except Exception as e:
             return ExecutionResult(
                 status=ExecutionStatus.ERROR,
                 output="",
                 error=f"GitHub Copilot API error: {str(e)}",
-                execution_time=time.time() - start_time
+                execution_time=time.time() - start_time,
             )
 
     def _get_env_with_api_key(self) -> Dict[str, str]:
@@ -450,7 +511,7 @@ def run_agent(
     task: str,
     api_key: Optional[str] = None,
     use_subprocess: bool = True,
-    timeout: int = 60
+    timeout: int = 60,
 ) -> Dict[str, Any]:
     """
     Convenience function to run an agent and return results as dictionary.

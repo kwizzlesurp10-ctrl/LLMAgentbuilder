@@ -5,14 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "llm-agent-builder"
 version = "1.0.0"
-description = "A tool to scaffold and generate Anthropic-based LLM agents"
+description = "A tool to scaffold and generate multi-provider LLM agents (Google Gemini, Anthropic Claude, OpenAI, HuggingFace)"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
     {name = "LLMAgentBuilder Team"}
 ]
-keywords = ["llm", "agent", "anthropic", "claude", "ai", "automation"]
+keywords = ["llm", "agent", "anthropic", "claude", "gemini", "openai", "huggingface", "ai", "automation", "multi-provider"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -37,6 +37,7 @@ dependencies = [
     "huggingface_hub>=0.19.0",
     "slowapi>=0.1.9",
     "tenacity>=8.2.0",
+    "pyyaml>=6.0.0",
 ]
 
 [project.optional-dependencies]
@@ -50,7 +51,9 @@ dev = [
 ]
 
 [project.scripts]
-llm-agent-builder = "llm_agent_builder.cli:main"
+llm-agent-builder = "llm_agent_builder.__main__:main"
+llm-agent-builder-cli = "llm_agent_builder.cli:main"
+llm-agent-builder-serve = "llm_agent_builder.server_runner:run_web_server"
 
 [project.urls]
 Homepage = "https://github.com/kwizzlesurp10-ctrl/LLMAgentbuilder"

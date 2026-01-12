@@ -173,11 +173,11 @@ def test_chat_conversation_history():
         # First message
         client.chat("First message", stream=False)
         assert len(client.conversation_history) == 2
-        
+
         # Second message - should include history
         client.chat("Second message", stream=False)
         assert len(client.conversation_history) == 4
-        
+
         # Verify the second call included history
         second_call_args = mock_client.chat_completion.call_args_list[1]
         messages = second_call_args[1]['messages']
@@ -197,7 +197,7 @@ def test_get_headers():
     """Test header generation."""
     client = HuggingChatClient(token="test_token")
     headers = client._get_headers()
-    
+
     assert "Content-Type" in headers
     assert "Authorization" in headers
     assert headers["Authorization"] == "Bearer test_token"
@@ -208,6 +208,6 @@ def test_get_headers_no_token():
     client = HuggingChatClient()
     client.token = None
     headers = client._get_headers()
-    
+
     assert "Content-Type" in headers
     assert "Authorization" not in headers

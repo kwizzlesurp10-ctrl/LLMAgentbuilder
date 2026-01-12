@@ -1,0 +1,41 @@
+# Test Environment Configuration
+# Settings optimized for automated testing
+
+server:
+  host: "127.0.0.1"
+  port: 8080  # Different port to avoid conflicts
+  workers: 1  # Single worker for deterministic tests
+  timeout: 30
+  reload: false
+
+providers:
+  google:
+    api_key_env: GOOGLE_GEMINI_KEY
+    default_model: gemini-1.5-pro
+    rate_limit: 100  # High limit for tests
+    timeout: 30
+  anthropic:
+    api_key_env: ANTHROPIC_API_KEY
+    default_model: claude-3-5-sonnet-20241022
+    rate_limit: 100
+    timeout: 30
+  huggingface:
+    api_key_env: HUGGINGFACEHUB_API_TOKEN
+    default_model: meta-llama/Meta-Llama-3-8B-Instruct
+    rate_limit: 100
+    timeout: 30
+
+database:
+  workflow_db: test_workflow.db  # Separate test database
+  pool_size: 2
+  timeout: 10
+
+logging:
+  level: WARNING  # Reduce noise in test output
+  format: "%(levelname)s - %(message)s"
+  file: null  # Console only for tests
+
+environment: test
+generated_agents_dir: test_generated_agents
+enable_metrics: false  # Disable metrics collection in tests
+enable_rate_limiting: false  # Disable rate limiting for faster tests
