@@ -4,11 +4,10 @@ import unittest
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
+from llm_agent_builder.agent_engine import AgentEngine, ExecutionStatus, API_KEY_ERROR_MESSAGE
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from llm_agent_builder.agent_engine import AgentEngine, ExecutionStatus, API_KEY_ERROR_MESSAGE
 
 
 class TestRefactoredHelpers(unittest.TestCase):
@@ -48,7 +47,7 @@ class TestRefactoredHelpers(unittest.TestCase):
         # Create a temporary file
         with tempfile.NamedTemporaryFile(suffix='.py', delete=False) as f:
             temp_path = f.name
-        
+
         try:
             result = self.engine._determine_source_type(temp_path)
             self.assertTrue(result)
@@ -64,7 +63,7 @@ class TestRefactoredHelpers(unittest.TestCase):
         """Test path validation with existing file."""
         with tempfile.NamedTemporaryFile(suffix='.py', delete=False) as f:
             temp_path = f.name
-        
+
         try:
             result = self.engine._validate_agent_path(temp_path, start_time=0.0)
             self.assertIsNone(result)
@@ -74,7 +73,7 @@ class TestRefactoredHelpers(unittest.TestCase):
     def test_validate_agent_path_not_exists(self):
         """Test path validation with non-existing file."""
         result = self.engine._validate_agent_path(
-            "/nonexistent/path/to/agent.py", 
+            "/nonexistent/path/to/agent.py",
             start_time=0.0
         )
         self.assertIsNotNone(result)
