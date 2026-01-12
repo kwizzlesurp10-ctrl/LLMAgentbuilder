@@ -18,6 +18,9 @@ from typing import Any, Dict, Optional, Union
 # Import configuration manager
 from llm_agent_builder.config import get_config_manager
 
+# Pre-compile regex patterns for performance
+_COPILOT_TOKEN_PATTERN = re.compile(r'^(?:ghp_|github_pat_|mock-copilot-)')
+
 # Import GitHub Copilot client if available
 try:
     from llm_agent_builder.copilot_client import CopilotClient
@@ -158,8 +161,7 @@ class AgentEngine:
         """Check if token is a GitHub Copilot bearer token."""
         if not token:
             return False
-        prefixes = ["ghp_", "github_pat_", "mock-copilot-"]
-        return any(token.startswith(prefix) for prefix in prefixes)
+        return bool(_COPILOT_TOKEN_PATTERN.match(token))
 
     def _get_copilot_client(self) -> Optional[Any]:
         """Get GitHub Copilot client if available and token is present."""
@@ -235,6 +237,34 @@ class AgentEngine:
             # Clean up temp file
             if os.path.exists(temp_file_path):
                 os.remove(temp_file_path)
+
+    def _check_api_key_or_error(self, start_time: float) -> Optional[ExecutionResult]:
+        """Check API key and return error result if missing."""
+        if not self.api_key:
+            error_msg = (
+                "API key not found. Set GOOGLE_GEMINI_KEY, "
+                "HUGGINGFACEHUB_API_TOKEN, or GITHUB_COPILOT_TOKEN"
+            )
+            return ExecutionResult(
+                status=ExecutionStatus.API_KEY_MISSING,
+                output="",
+                error=error_msg,
+                execution_time=time.time() - start_time
+            )
+        return None
+
+    def _determine_agent_source_type(self, agent_source: Union[str, Path]) -> tuple[bool, Union[str, Path]]:
+        """Determine if agent source is a file or code string."""
+        is_file = False
+        if isinstance(agent_source, Path):
+            is_file = True
+        elif isinstance(agent_source, str):
+            if '\n' in agent_source:
+                is_file = False
+            elif (os.path.exists(agent_source) or
+                  agent_source.endswith('.py')):
+                is_file = True
+        return is_file, agent_source
 
     def execute(
         self,

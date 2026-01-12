@@ -9,14 +9,14 @@ class AgentBuilder:
     def __init__(self, template_path: Optional[str] = None):
         if template_path and os.path.isfile(template_path):
             template_dir = os.path.dirname(template_path)
-            template_name = os.path.basename(template_path)
             self.env = Environment(loader=FileSystemLoader(template_dir))
-            self.template = self.env.get_template(template_name)
         else:
             if template_path is None:
                 template_path = os.path.join(os.path.dirname(__file__), 'templates')
             self.env = Environment(loader=FileSystemLoader(template_path))
-            self.template = self.env.get_template('agent_template.py.j2')
+        
+        # Cache for loaded templates
+        self._template_cache = {}
 
     def build_agent(
         self, 

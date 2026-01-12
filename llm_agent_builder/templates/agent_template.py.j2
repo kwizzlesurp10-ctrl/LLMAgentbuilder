@@ -153,6 +153,7 @@ class {{ agent_name }}:
         {% endif %}
     {% endif %}
     {% endif %}
+    {% endif %}
 
     def run(self, task: str{% if enable_multi_step %}, use_multi_step: bool = False{% endif %}):
         {% if enable_multi_step %}
@@ -301,7 +302,7 @@ if __name__ == '__main__':
 
     try:
         agent = {{ agent_name }}(api_key=api_key)
-        print(f"Running {{ agent_name }} with task: {args.task}\n")
+        print("Running {{ agent_name }} with task:", args.task)
         result = agent.run(args.task)
         print("Response:")
         print("-" * 50)

@@ -6,6 +6,9 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+# Pre-compile regex patterns for better performance
+_AGENT_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9_-]+$')
+
 # Add parent directory to path to allow running script directly
 # This allows the script to be run as: python llm_agent_builder/cli.py
 # or as: python -m llm_agent_builder.cli
@@ -38,7 +41,7 @@ def validate_agent_name(name: str) -> None:
     """Validate agent name."""
     if not name:
         raise ValueError("Agent name cannot be empty")
-    if not name.replace("_", "").replace("-", "").isalnum():
+    if not _AGENT_NAME_PATTERN.match(name):
         raise ValueError("Agent name must be alphanumeric (with underscores or hyphens)")
 
 
